@@ -9,7 +9,6 @@ interface OdesliApi {
     @GET("v1-alpha.1/links")
     suspend fun resolveLink(
         @Query("url") url: String,
-        @Query("userCountry") userCountry: String? = null,
-        @Query("songIfSingle") songIfSingle: Boolean? = null
+        @Query("userCountry") userCountry: String? = null
     ): Response<OdesliResponse>
 }

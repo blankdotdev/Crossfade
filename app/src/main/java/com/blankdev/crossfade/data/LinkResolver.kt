@@ -15,9 +15,21 @@ import java.net.URLDecoder
 
 class LinkResolver(private val historyDao: HistoryDao) {
 
+    private val okHttpClient by lazy {
+        okhttp3.OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .header("User-Agent", "Crossfade/1.0.2 (Android; Mobile)")
+                    .build()
+                chain.proceed(request)
+            }
+            .build()
+    }
+
     private val odesliApi: OdesliApi by lazy {
         Retrofit.Builder()
             .baseUrl("https://api.song.link/")
+            .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(OdesliApi::class.java)
@@ -84,19 +96,20 @@ class LinkResolver(private val historyDao: HistoryDao) {
 
             // 2. Try Odesli
             try {
-                // Determine country - potentially from settings in future, default null (Odesli uses IP/US)
-                val response = odesliApi.resolveLink(effectiveUrl, songIfSingle = true)
+                val response = odesliApi.resolveLink(effectiveUrl)
                 if (response.isSuccessful && response.body() != null) {
                     val body = response.body()!!
-                    val entityUniqueId = body.entityUniqueId ?: return@withContext tryFallback(url, "No entity ID")
-                    val entity = body.entitiesByUniqueId?.get(entityUniqueId)
+                    val entityUniqueId = body.entityUniqueId ?: body.entitiesByUniqueId?.keys?.firstOrNull()
                     
+                    if (entityUniqueId == null) {
+                        return@withContext tryFallback(url, "Odesli returned no entities")
+                    }
+
+                    val entity = body.entitiesByUniqueId?.get(entityUniqueId)
                     val title = entity?.title
                     val artist = entity?.artistName
                     val thumbnail = entity?.thumbnailUrl
                     
-                    // If title is missing, Odesli failed to get meaningful data.
-                    // Fallback to our internal scrapers (OpenGraph/Metadata).
                     if (title.isNullOrBlank()) {
                          return@withContext tryFallback(url, "Odesli returned empty title")
                     }
@@ -104,7 +117,6 @@ class LinkResolver(private val historyDao: HistoryDao) {
                     // Save to History
                     val linksJson = Gson().toJson(body.linksByPlatform)
                     
-                    // Check for existing item to avoid duplicates (using the original URL as key)
                     val existingForUrl = historyDao.getHistoryItemByUrl(url)
                     val newId = existingForUrl?.id ?: 0
                     
@@ -114,7 +126,7 @@ class LinkResolver(private val historyDao: HistoryDao) {
                         songTitle = title,
                         artistName = artist,
                         thumbnailUrl = thumbnail,
-                        originalImageUrl = thumbnail, // Store original for backup/restore
+                        originalImageUrl = thumbnail,
                         pageUrl = body.pageUrl,
                         linksJson = linksJson,
                         isResolved = true
@@ -122,9 +134,17 @@ class LinkResolver(private val historyDao: HistoryDao) {
                     historyDao.insert(historyItem)
 
                     return@withContext ResolveResult.Success(body, historyItem)
+                } else {
+                    // Diagnostic info for the user
+                    withContext(Dispatchers.Main) {
+                        android.widget.Toast.makeText(com.blankdev.crossfade.CrossfadeApp.instance, "Odesli Error: ${response.code()}", android.widget.Toast.LENGTH_SHORT).show()
+                    }
                 }
             } catch (e: Exception) {
-                // Ignore and try fallback
+                // Diagnostic info for the user
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(com.blankdev.crossfade.CrossfadeApp.instance, "Network Error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                }
             }
             
             // 3. Fallback

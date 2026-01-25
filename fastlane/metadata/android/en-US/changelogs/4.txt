@@ -1,0 +1,4 @@
+- Disabled minification temporarily to rule out obfuscation-related resolution failures.
+- Added User-Agent to API requests for better compatibility.
+- Added diagnostic toasts to identify resolution errors on real devices.
+- Refined Odesli resolution logic for better entity matching.

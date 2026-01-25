@@ -30,7 +30,7 @@ Currently, Crossfade is available as a direct APK download, can be built from so
 To ensure your Crossfade build is genuine and hasn't been tampered with, you can verify it using [AppVerifier](https://github.com/soupslurpr/AppVerifier).
 
 **Package Name:** `com.blankdev.crossfade`
-**SHA-256 Hash:** `BA:22:A6:99:ED:89:C9:FD:05:06:B6:E2:D7:6B:54:18:C9:45:F2:1E:A4:42:11:6C:17:44:F7:0D:54:EC:03:BA`
+**SHA-256 Hash:** `D5:69:98:17:CC:CE:5F:F6:0B:8C:4B:1A:FA:A7:E8:A8:61:E3:A6:EA:C0:BF:40:C6:FC:EA:21:0E:FC:57:40:56`
 
 ### How to Verify
 1. Copy the SHA-256 hash above.

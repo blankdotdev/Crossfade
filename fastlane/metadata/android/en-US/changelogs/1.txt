@@ -1,0 +1,4 @@
+- Initial release of Crossfade.
+- Support for major music streaming platforms.
+- Smart link redirection via Odesli API.
+- Material You inspired design.

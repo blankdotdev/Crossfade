@@ -1,0 +1,10 @@
+Crossfade is an elegant Android application designed to bridge the gap between music streaming services. It enables users to seamlessly redirect song, album, and playlist links from one platform to another, ensuring a smooth listening experience regardless of which app your friends use.
+
+✨ Features:
+- Universal Link Handling: Support for Spotify, Apple Music, Tidal, Amazon Music, YouTube, YouTube Music, Deezer, Soundcloud, and more.
+- Smart Redirection: Leverages the Odesli (Song.link) API to find the equivalent track on your preferred service.
+- Fallback Mechanism: If an exact match isn't found, Crossfade performs a smart search (Title + Artist) within your target app.
+- Share Sheet Integration: Redirect links directly from the Android Share Sheet—no more manual copying and pasting.
+- Fast & Lightweight: Minimalist design focused on speed and efficiency.
+- History & Favorites: Keep track of recently resolved links for quick access.
+- Dark Mode: Full support for system-wide dark and light themes.

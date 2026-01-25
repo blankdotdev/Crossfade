@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material 3 Dynamic Colors - these will be overridden by system colors -->
+    <color name="md_theme_surfaceVariant">#E7E0EC</color>
+    <color name="md_theme_surfaceVariant_dark">#49454F</color>
+    <color name="pastel_green">#77DD77</color>
+    <color name="pastel_red">#FF6961</color>
+    <color name="pastel_yellow">#FDFD96</color>
+    <color name="pastel_orange">#FFB347</color>
+    <color name="material_on_surface_variant">#49454F</color>
+</resources>

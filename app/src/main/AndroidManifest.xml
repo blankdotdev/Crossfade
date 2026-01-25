@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:name=".CrossfadeApp"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Crossfade"
+        tools:targetApi="31">
+        
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Crossfade">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.RedirectActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Crossfade.Redirect"
+            android:noHistory="true"
+            android:excludeFromRecents="true">
+            
+            <!-- Share Handler -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            
+            <!-- Deep Links for Supported Services -->
+            <!-- Spotify -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="open.spotify.com" />
+                <data android:host="spotify.com" />
+                <data android:host="www.spotify.com" />
+            </intent-filter>
+            
+            <!-- Apple Music -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="music.apple.com" />
+                <data android:host="itunes.apple.com" />
+            </intent-filter>
+
+            <!-- Tidal -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="tidal.com" />
+                <data android:host="www.tidal.com" />
+                <data android:host="listen.tidal.com" />
+            </intent-filter>
+            
+             <!-- Amazon Music -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="music.amazon.com" />
+            </intent-filter>
+
+            <!-- YouTube Music -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="music.youtube.com" />
+            </intent-filter>
+
+            <!-- Deezer -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="deezer.com" />
+                <data android:host="www.deezer.com" />
+            </intent-filter>
+
+            <!-- SoundCloud -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="soundcloud.com" />
+                <data android:host="www.soundcloud.com" />
+                <data android:host="on.soundcloud.com" />
+            </intent-filter>
+
+            <!-- Napster -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="napster.com" />
+                <data android:host="www.napster.com" />
+                <data android:host="us.napster.com" />
+                <data android:host="web.napster.com" />
+            </intent-filter>
+
+            <!-- Pandora -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="pandora.com" />
+                <data android:host="www.pandora.com" />
+            </intent-filter>
+
+            <!-- Audiomack -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="audiomack.com" />
+                <data android:host="www.audiomack.com" />
+            </intent-filter>
+
+            <!-- Anghami -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="anghami.com" />
+                <data android:host="www.anghami.com" />
+                <data android:host="play.anghami.com" />
+            </intent-filter>
+
+            <!-- Boomplay -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="boomplay.com" />
+                <data android:host="www.boomplay.com" />
+            </intent-filter>
+
+            <!-- Yandex Music -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="music.yandex.com" />
+                <data android:host="music.yandex.ru" />
+            </intent-filter>
+
+            <!-- Audius -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="audius.co" />
+                <data android:host="www.audius.co" />
+            </intent-filter>
+
+            <!-- Bandcamp -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="bandcamp.com" />
+                <data android:host="www.bandcamp.com" />
+            </intent-filter>
+
+            <!-- Shazam -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="shazam.com" />
+                <data android:host="www.shazam.com" />
+            </intent-filter>
+
+            <!-- Apple Podcasts -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="podcasts.apple.com" />
+            </intent-filter>
+
+
+        </activity>
+        
+        <activity
+            android:name=".ui.OnboardingActivity"
+            android:theme="@style/Theme.Crossfade"
+            android:screenOrientation="portrait"/>
+
+        <activity android:name=".ui.SettingsActivity" 
+            android:parentActivityName=".ui.MainActivity"/>
+
+        <activity android:name=".ui.PreferredAppActivity" 
+            android:parentActivityName=".ui.SettingsActivity"
+            android:theme="@style/Theme.Crossfade"/>
+
+        <activity android:name=".ui.AdditionalLinksActivity" 
+            android:parentActivityName=".ui.SettingsActivity"
+            android:theme="@style/Theme.Crossfade"/>
+
+        <activity android:name=".ui.BackupRestoreActivity" 
+            android:parentActivityName=".ui.SettingsActivity"
+            android:theme="@style/Theme.Crossfade"/>
+            
+    </application>
+
+</manifest>

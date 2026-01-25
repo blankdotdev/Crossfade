@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <TextView
+        android:id="@+id/titleStep1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:text="Where should music play?"
+        android:textAlignment="center"
+        android:textAppearance="?attr/textAppearanceHeadlineMedium"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/subtitleStep1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Select your preferred destination for music links"
+        android:textAlignment="center"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?android:attr/textColorSecondary"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/titleStep1" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/iconCloudContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="60dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/subtitleStep1">
+
+        <!-- Center Anchor (Spotify) -->
+        <include
+            android:id="@+id/itemSpotify"
+            layout="@layout/view_onboarding_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.40" />
+
+        <!-- Ring 1 (Common) - Tightened margins -->
+        <include
+            android:id="@+id/itemApple"
+            layout="@layout/view_onboarding_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toTopOf="@+id/itemSpotify"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/itemSpotify"
+            android:layout_marginBottom="8dp"
+            android:layout_marginStart="4dp"/>
+
+        <include
+            android:id="@+id/itemYoutubeMusic"
+            layout="@layout/view_onboarding_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@+id/itemSpotify"
+            app:layout_constraintEnd_toStartOf="@+id/itemSpotify"
+            android:layout_marginTop="19dp"
+            android:layout_marginEnd="16dp"
+            android:translationX="15dp"/>
+
+        <include
+            android:id="@+id/itemAmazon"
+            layout="@layout/view_onboarding_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toTopOf="@+id/itemSpotify"
+            app:layout_constraintEnd_toStartOf="@+id/itemSpotify"
+            android:layout_marginBottom="16dp"
+            android:layout_marginEnd="4dp"/>
+
+        <!-- Ring 2 (Outer) - Pulled in significantly -->
+        <include
+            android:id="@+id/itemTidal"
+            layout="@layout/view_onboarding_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@+id/itemSpotify"
+            app:layout_constraintStart_toEndOf="@+id/itemSpotify"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="4dp"/>
+
+        <include
+            android:id="@+id/itemSoundcloud"
+            layout="@layout/view_onboarding_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@+id/itemSpotify"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="90dp"/> <!-- Reduced from 110 -->
+
+        <include
+            android:id="@+id/itemYoutube"
+            layout="@layout/view_onboarding_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toTopOf="@+id/itemSpotify"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginBottom="85dp"
+            android:translationX="32dp"/> <!-- Reduced from 100 -->
+
+        <include
+            android:id="@+id/itemDeezer"
+            layout="@layout/view_onboarding_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/itemSpotify"
+            android:layout_marginEnd="90dp" 
+            android:translationY="-125dp"/> <!-- Reduced margin -->
+
+        <include
+            android:id="@+id/itemPandora"
+            layout="@layout/view_onboarding_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/itemSpotify"
+            android:layout_marginStart="75dp"
+            android:translationY="-115dp"/> <!-- Reduced margin -->
+            
+        <!-- Corners/Fillers - Much tighter constraints -->
+        <include
+            android:id="@+id/itemNapster"
+            layout="@layout/view_onboarding_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toTopOf="@+id/itemAmazon"
+            app:layout_constraintEnd_toStartOf="@+id/itemAmazon"
+            android:layout_marginBottom="8dp"
+            android:layout_marginEnd="8dp"/>
+            
+        <include
+            android:id="@+id/itemAnghami"
+            layout="@layout/view_onboarding_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toTopOf="@+id/itemApple"
+            app:layout_constraintStart_toEndOf="@+id/itemApple"
+            android:layout_marginBottom="4dp"
+            android:layout_marginStart="8dp"
+            android:translationX="-24dp"/>
+            
+        <include
+            android:id="@+id/itemBoomplay"
+            layout="@layout/view_onboarding_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@+id/itemYoutubeMusic"
+            app:layout_constraintEnd_toStartOf="@+id/itemYoutubeMusic"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"/>
+            
+        <include
+            android:id="@+id/itemAudiomack"
+            layout="@layout/view_onboarding_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@+id/itemTidal"
+            app:layout_constraintStart_toEndOf="@+id/itemTidal"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"/>
+
+        <include
+            android:id="@+id/itemYandex"
+            layout="@layout/view_onboarding_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toTopOf="@+id/itemYoutube"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginBottom="4dp"/>
+            
+        <include
+            android:id="@+id/itemBandcamp"
+            layout="@layout/view_onboarding_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@+id/itemSoundcloud"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="4dp"/>
+            
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

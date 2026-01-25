@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Centered, smaller infinity-like loop for themed icons -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M54,54 C46,38 30,40 30,54 C30,68 46,70 54,54 Z M54,54 C62,38 78,40 78,54 C78,68 62,70 54,54 Z" />
+</vector>

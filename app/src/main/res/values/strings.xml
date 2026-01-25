@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">Crossfade</string>
+    <string name="prompt_paste_url">Paste music or podcast URL</string>
+    <string name="action_clear_all">CLEAR ALL</string>
+    <string name="action_share">Share</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_clear_item">Clear item</string>
+    <string name="txt_resolved_links">All services</string>
+    <string name="target_universal">Universal (Best available)</string>
+    <string name="action_resolve">Resolve</string>
+    <string name="settings_podcast_target">Podcast Target App</string>
+    <string name="empty_state_message">%1$d/%2$d services handled by default. You can also share links directly to Crossfade or paste one by tapping + below</string>
+</resources>

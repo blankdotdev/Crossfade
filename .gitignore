@@ -1,0 +1,31 @@
+# Android Studio
+*.iml
+.gradle
+/local.properties
+/.idea/
+.DS_Store
+/build
+/app/build
+/captures
+.externalNativeBuild
+.cxx
+
+# Kotlin
+/lib
+
+# Log files
+*.log
+
+# Android Studio
+*.jks
+*.keystore
+*.apk
+*.aab
+
+# VS Code
+.vscode/
+
+# Project specific
+capture.png
+*.webp
+brain/

@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="?android:attr/colorBackground"
+    android:fitsSystemWindows="true">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/topAppBar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:elevation="0dp"
+        app:title="Preferred Music App"
+        app:titleTextColor="?attr/colorOnSurface"
+        app:navigationIconTint="?attr/colorOnSurface"
+        android:background="@android:color/transparent" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_section_card"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="App Selection"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Choose your preferred player for link redirection"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="14sp"
+                android:layout_marginBottom="16dp"/>
+
+            <RadioGroup
+                android:id="@+id/radioGroupTarget"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <!-- Helper style for items could be used if defined in styles.xml, but we'll stick to ad-hoc for now -->
+                
+                <RadioButton
+                    android:id="@+id/radioUniversal"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Ask everytime"
+                    android:textColor="?attr/colorOnSurface"
+                    android:buttonTint="?attr/colorPrimary"
+                    android:drawableStart="@drawable/ic_globe"
+                    android:drawablePadding="16dp"
+                    android:drawableTint="?attr/colorOnSurfaceVariant"
+                    android:gravity="center_vertical" />
+
+                <RadioButton
+                    android:id="@+id/radioSpotify"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Spotify"
+                    android:textColor="?attr/colorOnSurface"
+                    android:buttonTint="?attr/colorPrimary"
+                    android:drawableStart="@drawable/ic_spotify"
+                    android:drawablePadding="16dp"
+                    android:gravity="center_vertical" />
+
+                <RadioButton
+                    android:id="@+id/radioTidal"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Tidal"
+                    android:textColor="?attr/colorOnSurface"
+                    android:buttonTint="?attr/colorPrimary"
+                    android:drawableStart="@drawable/ic_tidal"
+                    android:drawablePadding="16dp"
+                    android:gravity="center_vertical" />
+
+                <RadioButton
+                    android:id="@+id/radioYoutubePlain"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="YouTube"
+                    android:textColor="?attr/colorOnSurface"
+                    android:buttonTint="?attr/colorPrimary"
+                    android:drawableStart="@drawable/ic_youtube"
+                    android:drawablePadding="16dp"
+                    android:gravity="center_vertical" />
+
+                <RadioButton
+                    android:id="@+id/radioYoutube"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="YouTube Music"
+                    android:textColor="?attr/colorOnSurface"
+                    android:buttonTint="?attr/colorPrimary"
+                    android:drawableStart="@drawable/ic_youtube_music"
+                    android:drawablePadding="16dp"
+                    android:gravity="center_vertical" />
+
+                <RadioButton
+                    android:id="@+id/radioAmazon"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Amazon Music"
+                    android:textColor="?attr/colorOnSurface"
+                    android:buttonTint="?attr/colorPrimary"
+                    android:drawableStart="@drawable/ic_amazon_music"
+                    android:drawablePadding="16dp"
+                    android:gravity="center_vertical" />
+
+                <RadioButton
+                    android:id="@+id/radioApple"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Apple Music"
+                    android:textColor="?attr/colorOnSurface"
+                    android:buttonTint="?attr/colorPrimary"
+                    android:drawableStart="@drawable/ic_apple_music"
+                    android:drawablePadding="16dp"
+                    android:gravity="center_vertical" />
+
+                <RadioButton
+                    android:id="@+id/radioSoundcloud"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="SoundCloud"
+                    android:textColor="?attr/colorOnSurface"
+                    android:buttonTint="?attr/colorPrimary"
+                    android:drawableStart="@drawable/ic_soundcloud"
+                    android:drawablePadding="16dp"
+                    android:gravity="center_vertical" />
+
+                <RadioButton
+                    android:id="@+id/radioBandcamp"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Bandcamp"
+                    android:textColor="?attr/colorOnSurface"
+                    android:buttonTint="?attr/colorPrimary"
+                    android:drawableStart="@drawable/ic_bandcamp"
+                    android:drawablePadding="16dp"
+                    android:gravity="center_vertical" />
+
+                <RadioButton
+                    android:id="@+id/radioDeezer"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Deezer"
+                    android:textColor="?attr/colorOnSurface"
+                    android:buttonTint="?attr/colorPrimary"
+                    android:drawableStart="@drawable/ic_deezer"
+                    android:drawablePadding="16dp"
+                    android:gravity="center_vertical" />
+
+                <RadioButton
+                    android:id="@+id/radioNapster"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Napster"
+                    android:textColor="?attr/colorOnSurface"
+                    android:buttonTint="?attr/colorPrimary"
+                    android:drawableStart="@drawable/ic_napster"
+                    android:drawablePadding="16dp"
+                    android:gravity="center_vertical" />
+
+                <RadioButton
+                    android:id="@+id/radioPandora"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Pandora"
+                    android:textColor="?attr/colorOnSurface"
+                    android:buttonTint="?attr/colorPrimary"
+                    android:drawableStart="@drawable/ic_pandora"
+                    android:drawablePadding="16dp"
+                    android:gravity="center_vertical" />
+
+                <RadioButton
+                    android:id="@+id/radioAnghami"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Anghami"
+                    android:textColor="?attr/colorOnSurface"
+                    android:buttonTint="?attr/colorPrimary"
+                    android:drawableStart="@drawable/ic_anghami"
+                    android:drawablePadding="16dp"
+                    android:gravity="center_vertical" />
+
+                <RadioButton
+                    android:id="@+id/radioYandex"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Yandex Music"
+                    android:textColor="?attr/colorOnSurface"
+                    android:buttonTint="?attr/colorPrimary"
+                    android:drawableStart="@drawable/ic_yandex_music"
+                    android:drawablePadding="16dp"
+                    android:gravity="center_vertical" />
+
+                <RadioButton
+                    android:id="@+id/radioAudiomack"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Audiomack"
+                    android:textColor="?attr/colorOnSurface"
+                    android:buttonTint="?attr/colorPrimary"
+                    android:drawableStart="@drawable/ic_audiomack"
+                    android:drawablePadding="16dp"
+                    android:gravity="center_vertical" />
+
+                <RadioButton
+                    android:id="@+id/radioAudius"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Audius"
+                    android:textColor="?attr/colorOnSurface"
+                    android:buttonTint="?attr/colorPrimary"
+                    android:drawableStart="@drawable/ic_audius"
+                    android:drawablePadding="16dp"
+                    android:gravity="center_vertical" />
+
+                <RadioButton
+                    android:id="@+id/radioBoomplay"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Boomplay"
+                    android:textColor="?attr/colorOnSurface"
+                    android:buttonTint="?attr/colorPrimary"
+                    android:drawableStart="@drawable/ic_boomplay"
+                    android:drawablePadding="16dp"
+                    android:gravity="center_vertical" />
+
+            </RadioGroup>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

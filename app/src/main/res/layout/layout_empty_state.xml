@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/emptyStateContainer"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="32dp"
+    android:clipChildren="false"
+    android:visibility="gone"
+    tools:visibility="visible">
+
+    <!-- Visualization Container (Flow Chart) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/visualizationContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:paddingVertical="12dp"
+        app:layout_constraintBottom_toTopOf="@+id/emptyStateText"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_chainStyle="packed">
+
+        <!-- 1. Globe -->
+        <ImageView
+            android:id="@+id/iconSource"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:src="@drawable/ic_globe"
+            android:padding="14dp"
+            app:tint="?android:attr/textColorSecondary"
+            android:background="@drawable/bg_circle_soft"
+            app:layout_constraintEnd_toStartOf="@+id/iconArrow1"
+            app:layout_constraintHorizontal_chainStyle="packed"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- 2. Arrow 1 -->
+        <ImageView
+            android:id="@+id/iconArrow1"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_arrow_forward"
+            app:tint="?attr/colorPrimary"
+            android:layout_marginHorizontal="8dp"
+            app:layout_constraintBottom_toBottomOf="@+id/iconSource"
+            app:layout_constraintEnd_toStartOf="@+id/iconCrossfade"
+            app:layout_constraintStart_toEndOf="@+id/iconSource"
+            app:layout_constraintTop_toTopOf="@+id/iconSource" />
+
+        <!-- 3. Crossfade Icon (Center) -->
+        <ImageView
+            android:id="@+id/iconCrossfade"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:src="@mipmap/ic_launcher_round" 
+            android:background="@drawable/bg_circle_soft"
+            android:elevation="2dp"
+            app:layout_constraintBottom_toBottomOf="@+id/iconSource"
+            app:layout_constraintEnd_toStartOf="@+id/iconArrow2"
+            app:layout_constraintStart_toEndOf="@+id/iconArrow1"
+            app:layout_constraintTop_toTopOf="@+id/iconSource" />
+
+        <!-- 4. Arrow 2 -->
+        <ImageView
+            android:id="@+id/iconArrow2"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_arrow_forward"
+            app:tint="?attr/colorPrimary"
+            android:layout_marginHorizontal="8dp"
+            app:layout_constraintBottom_toBottomOf="@+id/iconSource"
+            app:layout_constraintEnd_toStartOf="@+id/iconTarget"
+            app:layout_constraintStart_toEndOf="@+id/iconCrossfade"
+            app:layout_constraintTop_toTopOf="@+id/iconSource" />
+
+        <!-- 5. Target Service -->
+        <ImageView
+            android:id="@+id/iconTarget"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:src="@drawable/ic_spotify"
+            android:padding="14dp"
+            android:background="@drawable/bg_circle_soft"
+            android:elevation="4dp"
+            app:layout_constraintBottom_toBottomOf="@+id/iconSource"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/iconArrow2"
+            app:layout_constraintTop_toTopOf="@+id/iconSource" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <TextView
+        android:id="@+id/emptyStateText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="0/0 services handled by default. You can also share links directly to Crossfade or paste one by tapping + below"
+        android:textAlignment="center"
+        android:textAppearance="?attr/textAppearanceBodyLarge"
+        android:textColor="?android:attr/textColorSecondary"
+        android:lineSpacingExtra="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/visualizationContainer" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

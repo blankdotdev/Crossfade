@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="45"
+        android:endColor="#1db954"
+        android:centerColor="#191414"
+        android:startColor="#0e0e0e"
+        android:type="linear" />
+    <!-- Using Spotify Green, Dark Gray, and Black for a dark modern feel. 
+         Will adjust dynamically possibly later or stick to a neutral brand theme? 
+         Let's go for a "Crossfade" theme: neutral dark with vibrant accents. -->
+</shape>

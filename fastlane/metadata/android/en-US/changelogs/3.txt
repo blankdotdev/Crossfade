@@ -1,0 +1,3 @@
+- Fixed Odesli resolution failure on real devices by adding missing ProGuard rules.
+- Improved search query cleaning to remove platform names from fallback searches.
+- Enhanced reliability of caching mechanisms.

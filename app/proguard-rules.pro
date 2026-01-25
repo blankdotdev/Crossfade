@@ -7,4 +7,27 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools-proguard.html
 
-# Add any project-specific rules here:
+# GSON
+-keepattributes Signature
+-keepattributes *Annotation*
+-keep class sun.misc.Unsafe { *; }
+-keep class com.google.gson.stream.** { *; }
+-keep class com.google.gson.annotations.** { *; }
+
+# Keep our API models
+-keep class com.blankdev.crossfade.api.** { *; }
+
+# Keep our Data models
+-keep class com.blankdev.crossfade.data.** { *; }
+
+# Room
+-keep class androidx.room.** { *; }
+-dontwarn androidx.room.**
+
+# Retrofit
+-keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
+-keep class retrofit2.** { *; }
+-dontwarn retrofit2.**
+-keepclasseswithmembers class * {
+    @retrofit2.http.* <methods>;
+}

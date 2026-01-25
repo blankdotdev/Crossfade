@@ -247,7 +247,24 @@ class LinkResolver(private val historyDao: HistoryDao) {
         )
         historyDao.insert(historyItem)
         
-        val searchQuery = if (artist != null) "$title $artist" else title
+        // Clean the search query aggressively by removing platform names from title/artist
+        val platforms = listOf(
+            "Spotify", "Apple Music", "Tidal", "Amazon Music", "YouTube Music", "YouTube",
+            "Deezer", "SoundCloud", "Napster", "Pandora", "Audiomack", 
+            "Anghami", "Boomplay", "Yandex Music", "Audius", "Bandcamp", "Shazam"
+        )
+        
+        var cleanTitle = title
+        var cleanArtist = artist ?: ""
+        
+        platforms.forEach { platform ->
+            // Case-insensitive removal with optional " - ", " on ", " | ", etc.
+            val regex = "(?i)[\\s\\-\\|]*\\b$platform\\b[\\s\\-\\|]*".toRegex()
+            cleanTitle = cleanTitle.replace(regex, " ").trim()
+            cleanArtist = cleanArtist.replace(regex, " ").trim()
+        }
+
+        val searchQuery = if (cleanArtist.isNotBlank()) "$cleanTitle $cleanArtist" else cleanTitle
         return ResolveResult.Fallback(historyItem, searchQuery)
     }
 

@@ -67,7 +67,9 @@ object LinkProcessor {
             // However, we can check the DB here too for UI purposes if we want to be instant.
             
             val cachedItem = withContext(Dispatchers.IO) { app.database.historyDao().getHistoryItemByUrl(url) }
-            if (cachedItem == null || !cachedItem.isResolved) {
+            val isActuallyResolved = cachedItem != null && cachedItem.isResolved && !cachedItem.linksJson.isNullOrBlank() && cachedItem.linksJson != "{}"
+            
+            if (!isActuallyResolved) {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, "Crossfading...", Toast.LENGTH_SHORT).show()
                 }

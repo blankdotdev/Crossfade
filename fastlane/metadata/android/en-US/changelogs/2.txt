@@ -1,0 +1,4 @@
+- Added database caching for significantly faster link resolution.
+- Optimized SoundCloud short link handling.
+- Improved search results by filtering platform names from metadata.
+- UI enhancements for a smoother redirection experience.

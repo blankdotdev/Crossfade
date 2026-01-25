@@ -54,15 +54,10 @@ class LinkResolver(private val historyDao: HistoryDao) {
                     } catch (e: Exception) {
                         // Fallback to network if JSON parsing fails
                     }
-                } else if (existingItem.linksJson == "{}") {
-                    // It's a fallback item (no direct links)
-                    val searchQuery = if (existingItem.artistName != null) {
-                        "${existingItem.songTitle} ${existingItem.artistName}"
-                    } else {
-                        existingItem.songTitle ?: url
-                    }
-                    return@withContext ResolveResult.Fallback(existingItem, searchQuery)
                 }
+                // Note: We no longer return Fallback instantly from cache here.
+                // This allows the app to re-try Odesli for previously failed/fallback links,
+                // which fixes the issue where a transient Odesli failure becomes permanent.
             }
 
             // 1. Pre-process SoundCloud short links
@@ -202,7 +197,18 @@ class LinkResolver(private val historyDao: HistoryDao) {
             var description = doc.select("meta[property=og:description]").attr("content")
             val siteName = doc.select("meta[property=og:site_name]").attr("content")
             
-            val artistOrSite = if (siteName.isNotBlank()) siteName else description
+            // Clean metadata: exclude known platform names from being used as the artist name
+            val ignoredSiteNames = listOf(
+                "Spotify", "Apple Music", "Tidal", "Amazon Music", "YouTube Music", 
+                "Deezer", "SoundCloud", "Napster", "Pandora", "Audiomack", 
+                "Anghami", "Boomplay", "Yandex Music", "Audius", "Bandcamp", "Shazam"
+            )
+            
+            val artistOrSite = when {
+                siteName.isNotBlank() && !ignoredSiteNames.any { siteName.equals(it, ignoreCase = true) } -> siteName
+                description.isNotBlank() && description.length < 100 -> description // Use short descriptions as potential artist info
+                else -> null
+            }
 
             if (title.isNotBlank()) {
                  return createFallbackResult(originalUrl, title, artistOrSite, image.ifBlank { null })

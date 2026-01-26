@@ -1,0 +1,4 @@
+- Stable release of performance improvements and caching.
+- Resolved link resolution issues on real devices.
+- Cleaned up search queries for fallback redirects.
+- Improved network compatibility with official APIs.

@@ -136,15 +136,9 @@ class LinkResolver(private val historyDao: HistoryDao) {
                     return@withContext ResolveResult.Success(body, historyItem)
                 } else {
                     // Diagnostic info for the user
-                    withContext(Dispatchers.Main) {
-                        android.widget.Toast.makeText(com.blankdev.crossfade.CrossfadeApp.instance, "Odesli Error: ${response.code()}", android.widget.Toast.LENGTH_SHORT).show()
-                    }
                 }
             } catch (e: Exception) {
-                // Diagnostic info for the user
-                withContext(Dispatchers.Main) {
-                    android.widget.Toast.makeText(com.blankdev.crossfade.CrossfadeApp.instance, "Network Error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
-                }
+                // Resolution failed, will fallback below
             }
             
             // 3. Fallback

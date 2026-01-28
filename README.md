@@ -1,8 +1,9 @@
 <img src="assets/crossfade-github-banner.png" alt="Crossfade Banner" width="100%" />
 
 <p align="center">
-  <img src="fastlane/metadata/android/en-US/images/crossfade.gif" height="500">
-  <img src="fastlane/metadata/android/en-US/images/crossfade2.png" height="500">
+  <img src="fastlane/metadata/android/en-US/images/crossfade.gif" height="400">
+  <img src="fastlane/metadata/android/en-US/images/crossfade1.png" height="400">
+  <img src="fastlane/metadata/android/en-US/images/crossfade2.png" height="400">
 </p>
 
 Crossfade is an Android app that opens any music link in your preferred streaming service - regardless of what your friends use. It seamlessly redirects song and album links from any platform to another, ensuring a smooth listening experience.

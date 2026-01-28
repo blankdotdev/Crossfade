@@ -1,14 +1,19 @@
-# Crossfade
+<img src="assets/crossfade-github-banner.png" alt="Crossfade Banner" width="100%" />
 
-Crossfade is an Android application designed to bridge the gap between music streaming services. It enables users to seamlessly redirect song and album links from one platform to another, ensuring a smooth listening experience regardless of which app your friends use.
+<p align="center">
+  <img src="fastlane/metadata/android/en-US/images/crossfade.gif" height="500">
+  <img src="fastlane/metadata/android/en-US/images/crossfade2.png" height="500">
+</p>
+
+Crossfade is an Android app that opens any music link in your preferred streaming service - regardless of what your friends use. It seamlessly redirects song and album links from any platform to another, ensuring a smooth listening experience.
 
 <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/blankdotdev/Crossfade"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" height="40"></a>
 
 ## ✨ Features
 
-- **Universal Link Handling**: Support for Spotify, Apple Music, Tidal, Amazon Music, YouTube, YouTube Music, Deezer, Soundcloud, and more.
-- **Smart Redirection**: Leverages the Odesli (Song.link) API to find the equivalent track on your preferred service.
-- **Fallback Mechanism**: If an exact match isn't found, Crossfade performs a smart search (Title + Artist) within your target app.
+- **Universal Link Handling**: Support for Spotify, Apple Music, Tidal, Amazon Music, YouTube Music, Deezer, Soundcloud, and more.
+- **Smart Redirection**: Uses the Odesli API to find the equivalent track on your preferred service.
+- **Fallback Mechanism**: If an exact match isn't found, Crossfade performs a smart search (Title + Artist) to find the best match.
 - **Share Sheet Integration**: Redirect links directly from the Android Share Sheet—no more manual copying and pasting.
 - **History & Favorites**: Keep track of resolved links for quick access.
 
@@ -17,13 +22,13 @@ Crossfade is an Android application designed to bridge the gap between music str
 To get the most out of Crossfade, set it as your default link handler for the music apps you don't use:
 
 1.  Open **Crossfade** and navigate to **Settings**.
-2.  Tap on **"Set Link Handling Defaults"**.
+2.  Tap on **"Set As Default"**.
 3.  In the System Settings, ensure "Open supported links" is enabled.
 4.  Select the domains you want Crossfade to handle (e.g., `open.spotify.com`, `music.apple.com`).
 
 ## 📥 Installation
 
-Currently, Crossfade is available as a direct APK download, can be built from source or can be installed from Obtainium.
+Currently, Crossfade is available as a direct APK download (under Releases), can be built from source or ideally installed from Obtainium to allow for automatic updates.
 
 ## 🛡️ Verification
 

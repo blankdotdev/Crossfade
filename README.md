@@ -29,7 +29,7 @@ To get the most out of Crossfade, set it as your default link handler for the mu
 
 ## 📥 Installation
 
-Currently, Crossfade is available as a direct APK download (under Releases), can be built from source or ideally installed from Obtainium to allow for automatic updates.
+Currently, Crossfade is available as a direct APK download (under [Releases](https://github.com/blankdotdev/Crossfade/releases)), can be built from source or ideally installed from [Obtainium](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/blankdotdev/Crossfade) to allow for automatic updates.
 
 ## 🛡️ Verification
 

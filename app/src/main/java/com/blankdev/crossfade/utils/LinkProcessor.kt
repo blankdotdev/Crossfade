@@ -6,11 +6,12 @@ import android.net.Uri
 import android.widget.Toast
 import com.blankdev.crossfade.CrossfadeApp
 import com.blankdev.crossfade.data.ResolveResult
-import com.blankdev.crossfade.utils.SettingsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 object LinkProcessor {
 
@@ -26,31 +27,33 @@ object LinkProcessor {
         val settings = app.settingsManager
         val resolver = app.linkResolver
 
-        val isPodcast = resolver.isPodcastUrl(url)
-        val sourcePlatform = if (isPodcast) resolver.getPodcastPlatformFromUrl(url) else resolver.getPlatformFromUrl(url)
+        val isPodcast = PlatformRegistry.isPodcastUrl(url)
+        val sourcePlatform = if (isPodcast) PlatformRegistry.getPodcastPlatformFromUrl(url) else PlatformRegistry.getPlatformFromUrl(url)
         val targetApp = if (isPodcast) SettingsManager.TARGET_PODCAST_WEB else settings.targetApp
 
         val shouldNavigate = if (forceNavigate) true else (sourcePlatform != targetApp)
 
         scope.launch {
-            // Optimization: If we already failed to resolve this, don't try again unless forced
-            // OR if it's resolved but has no links (like a Shazam fallback)
             val hasNoLinks = historyItem?.isResolved == true && (historyItem.linksJson == null || historyItem.linksJson == "{}")
             val isUnresolved = historyItem?.isResolved == false
 
             if (historyItem != null && (isUnresolved || hasNoLinks)) {
                 withContext(Dispatchers.Main) {
                     if (shouldNavigate) {
-                        val searchQuery = if (!historyItem.songTitle.isNullOrBlank()) {
-                            if (!historyItem.artistName.isNullOrBlank()) "${historyItem.songTitle} ${historyItem.artistName}" else historyItem.songTitle
+                        if (context is androidx.fragment.app.FragmentActivity) {
+                            com.blankdev.crossfade.ui.ShareBottomSheet.showResolveFlow(
+                                context.supportFragmentManager,
+                                historyItem
+                            ) { updatedItem ->
+                                handleResolutionSuccess(context, updatedItem)
+                            }
                         } else {
-                            url
-                        }
-                        
-                        Toast.makeText(context, "Search instead...", Toast.LENGTH_SHORT).show()
-                        if (isPodcast) {
-                            performPodcastSearch(context, searchQuery, targetApp)
-                        } else {
+                            val searchQuery = if (!historyItem.songTitle.isNullOrBlank()) {
+                                if (!historyItem.artistName.isNullOrBlank()) "${historyItem.songTitle} ${historyItem.artistName}" else historyItem.songTitle
+                            } else {
+                                url
+                            }
+                            Toast.makeText(context, "Search instead...", Toast.LENGTH_SHORT).show()
                             performSearch(context, searchQuery, targetApp)
                         }
                         onComplete(true)
@@ -61,11 +64,6 @@ object LinkProcessor {
                 return@launch
             }
 
-            // Moved toast inside resolver check to only show it if it's NOT in cache
-            // But wait, resolveLink is a suspend fun that does the check.
-            // We can't know if it's in cache without calling it.
-            // However, we can check the DB here too for UI purposes if we want to be instant.
-            
             val cachedItem = withContext(Dispatchers.IO) { app.database.historyDao().getHistoryItemByUrl(url) }
             val isActuallyResolved = cachedItem != null && cachedItem.isResolved && !cachedItem.linksJson.isNullOrBlank() && cachedItem.linksJson != "{}"
             
@@ -87,11 +85,9 @@ object LinkProcessor {
                         }
 
                         if (shouldNavigate) {
-                            // Check for infinite loop: if Crossfade is the default handler for the preferred app's platform
                             val hasConflict = DefaultHandlerChecker.hasConflict(context, targetApp)
                             
                             if (hasConflict) {
-                                // Fallback to Odesli to prevent infinite loop
                                 Toast.makeText(context, "Conflict detected, opening Odesli instead", Toast.LENGTH_LONG).show()
                                 openUrl(context, result.data.pageUrl ?: "https://odesli.co/")
                                 onComplete(true)
@@ -124,11 +120,16 @@ object LinkProcessor {
                              return@withContext
                         }
 
-                        Toast.makeText(context, "Exact match failed. Searching...", Toast.LENGTH_SHORT).show()
                         if (shouldNavigate) {
-                            if (isPodcast) {
-                                performPodcastSearch(context, result.searchQuery, targetApp)
+                            if (context is androidx.fragment.app.FragmentActivity) {
+                                com.blankdev.crossfade.ui.ShareBottomSheet.showResolveFlow(
+                                    context.supportFragmentManager,
+                                    result.historyItem
+                                ) { updatedItem ->
+                                    handleResolutionSuccess(context, updatedItem)
+                                }
                             } else {
+                                Toast.makeText(context, "Exact match failed. Searching...", Toast.LENGTH_SHORT).show()
                                 performSearch(context, result.searchQuery, targetApp)
                             }
                             onComplete(true)
@@ -138,19 +139,25 @@ object LinkProcessor {
                     }
                     is ResolveResult.Error -> {
                         resolver.saveUnresolvedLink(url)
-                        // For truly unresolved links, we also show the menu if "Ask Everytime" is on
-                        // Wait, resolver.saveUnresolvedLink doesn't return the item. 
-                        // But we can fetch it.
-                        Toast.makeText(context, "Link unresolved, saved to list", Toast.LENGTH_SHORT).show()
                         
-                        if (targetApp == SettingsManager.TARGET_UNIVERSAL) {
-                             // Fetch newly saved item to show menu
+                        if (context is androidx.fragment.app.FragmentActivity) {
                              scope.launch {
                                  val item = app.database.historyDao().getHistoryItemByUrl(url)
                                  withContext(Dispatchers.Main) {
-                                     if (item != null) showMenu(context, item)
+                                     if (item != null) {
+                                         com.blankdev.crossfade.ui.ShareBottomSheet.showResolveFlow(
+                                             context.supportFragmentManager,
+                                             item
+                                         ) { updatedItem ->
+                                             handleResolutionSuccess(context, updatedItem)
+                                         }
+                                     } else {
+                                         Toast.makeText(context, "Link unresolved, saved to list", Toast.LENGTH_SHORT).show()
+                                     }
                                  }
                              }
+                        } else {
+                             Toast.makeText(context, "Link unresolved, saved to list", Toast.LENGTH_SHORT).show()
                         }
                         
                         onComplete(false)
@@ -179,19 +186,11 @@ object LinkProcessor {
     }
 
     private fun performSearch(context: Context, query: String, targetApp: String) {
-        val uriStr = when (targetApp) {
-            SettingsManager.TARGET_SPOTIFY -> "spotify:search:${Uri.encode(query)}"
-            SettingsManager.TARGET_APPLE_MUSIC -> "https://music.apple.com/us/search?term=${Uri.encode(query)}"
-            SettingsManager.TARGET_YOUTUBE_MUSIC -> "https://music.youtube.com/search?q=${Uri.encode(query)}"
-            SettingsManager.PLATFORM_DEEZER -> "deezer://www.deezer.com/search/${Uri.encode(query)}"
-            SettingsManager.PLATFORM_SOUNDCLOUD -> "https://soundcloud.com/search?q=${Uri.encode(query)}"
-            SettingsManager.PLATFORM_NAPSTER -> "https://web.napster.com/search?query=${Uri.encode(query)}"
-            SettingsManager.PLATFORM_PANDORA -> "https://www.pandora.com/search/${Uri.encode(query)}"
-            SettingsManager.PLATFORM_AUDIOMACK -> "https://audiomack.com/search?q=${Uri.encode(query)}"
-            SettingsManager.PLATFORM_YANDEX -> "https://music.yandex.ru/search?text=${Uri.encode(query)}"
-            SettingsManager.PLATFORM_BANDCAMP -> "https://bandcamp.com/search?q=${Uri.encode(query)}"
-            SettingsManager.PLATFORM_YOUTUBE -> "https://www.youtube.com/results?search_query=${Uri.encode(query)}"
-            else -> "https://odesli.co/?q=${Uri.encode(query)}"
+        val platform = PlatformRegistry.getPlatformByInternalId(targetApp)
+        val uriStr = if (platform?.searchUrlTemplate != null) {
+            platform.searchUrlTemplate.format(Uri.encode(query))
+        } else {
+            "https://odesli.co/?q=${Uri.encode(query)}"
         }
         
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uriStr)).apply {
@@ -208,18 +207,48 @@ object LinkProcessor {
         }
     }
 
-    private fun performPodcastSearch(context: Context, query: String, targetApp: String) {
-        // "Secret" feature: Always open Odesli for podcasts
-        val uriStr = "https://odesli.co/?q=${Uri.encode("$query podcast")}"
+    private fun handleResolutionSuccess(context: Context, item: com.blankdev.crossfade.data.HistoryItem) {
+        val app = CrossfadeApp.instance
+        val settings = app.settingsManager
+        val resolver = app.linkResolver
 
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uriStr)).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
+        val isPodcast = PlatformRegistry.isPodcastUrl(item.originalUrl)
+        val targetApp = if (isPodcast) SettingsManager.TARGET_PODCAST_WEB else settings.targetApp
 
-        try {
-            context.startActivity(intent)
-        } catch (e: Exception) {
-             Toast.makeText(context, "Could not open browser", Toast.LENGTH_SHORT).show()
+        if (targetApp == SettingsManager.TARGET_UNIVERSAL) {
+            showMenu(context, item)
+        } else {
+            val linksJson = item.linksJson
+            if (!linksJson.isNullOrBlank() && linksJson != "{}") {
+                try {
+                    val linksType = object : TypeToken<Map<String, com.blankdev.crossfade.api.PlatformLink>>() {}.type
+                    val linksByPlatform: Map<String, com.blankdev.crossfade.api.PlatformLink> = Gson().fromJson(linksJson, linksType)
+                    
+                    val response = com.blankdev.crossfade.api.OdesliResponse(
+                        entityUniqueId = null,
+                        userCountry = null,
+                        pageUrl = item.pageUrl,
+                        entitiesByUniqueId = null,
+                        linksByPlatform = linksByPlatform
+                    )
+                    
+                    val targetUrl = if (isPodcast) {
+                        resolver.getPodcastTargetUrl(response, targetApp)
+                    } else {
+                        resolver.getTargetUrl(response, targetApp)
+                    }
+
+                    if (targetUrl != null) {
+                        openUrl(context, targetUrl)
+                    } else {
+                        showMenu(context, item)
+                    }
+                } catch (e: Exception) {
+                    showMenu(context, item)
+                }
+            } else {
+                showMenu(context, item)
+            }
         }
     }
 }

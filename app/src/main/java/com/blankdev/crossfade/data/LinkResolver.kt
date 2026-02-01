@@ -1,9 +1,7 @@
 package com.blankdev.crossfade.data
 
-import com.blankdev.crossfade.api.OEmbedApi
-import com.blankdev.crossfade.api.OdesliApi
-import com.blankdev.crossfade.api.OdesliResponse
-import com.blankdev.crossfade.api.PlatformLink
+import com.blankdev.crossfade.api.*
+import com.blankdev.crossfade.utils.PlatformRegistry
 import com.blankdev.crossfade.utils.SettingsManager
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -11,7 +9,6 @@ import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import org.jsoup.Jsoup
-import java.net.URLDecoder
 
 class LinkResolver(private val historyDao: HistoryDao) {
 
@@ -35,13 +32,25 @@ class LinkResolver(private val historyDao: HistoryDao) {
             .create(OdesliApi::class.java)
     }
 
-    // Generic Retrofit client for dynamic OEmbed URLs
     private val oEmbedApi: OEmbedApi by lazy {
         Retrofit.Builder()
-            .baseUrl("https://open.spotify.com/") // Base URL ignored for @Url
+            .baseUrl("https://open.spotify.com/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(OEmbedApi::class.java)
+    }
+
+    private val itunesApi: ITunesApi by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://itunes.apple.com/")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ITunesApi::class.java)
+    }
+
+    private val fallbackResolver by lazy {
+        FallbackResolver(historyDao, oEmbedApi)
     }
 
     suspend fun resolveLink(url: String): ResolveResult {
@@ -49,14 +58,13 @@ class LinkResolver(private val historyDao: HistoryDao) {
             // 0. Check Database Cache First
             val existingItem = historyDao.getHistoryItemByUrl(url)
             if (existingItem != null && existingItem.isResolved) {
-                // If it's a "success" item (has links), reconstruct OdesliResponse
                 if (!existingItem.linksJson.isNullOrBlank() && existingItem.linksJson != "{}") {
                     try {
                         val linksType = object : com.google.gson.reflect.TypeToken<Map<String, PlatformLink>>() {}.type
                         val linksByPlatform: Map<String, PlatformLink> = Gson().fromJson(existingItem.linksJson, linksType)
                         
                         val response = OdesliResponse(
-                            entityUniqueId = null, // Not strictly needed for cached resolution
+                            entityUniqueId = null,
                             userCountry = null,
                             pageUrl = existingItem.pageUrl,
                             entitiesByUniqueId = null,
@@ -64,12 +72,9 @@ class LinkResolver(private val historyDao: HistoryDao) {
                         )
                         return@withContext ResolveResult.Success(response, existingItem)
                     } catch (e: Exception) {
-                        // Fallback to network if JSON parsing fails
+                        // Fallback to network
                     }
                 }
-                // Note: We no longer return Fallback instantly from cache here.
-                // This allows the app to re-try Odesli for previously failed/fallback links,
-                // which fixes the issue where a transient Odesli failure becomes permanent.
             }
 
             // 1. Pre-process SoundCloud short links
@@ -82,16 +87,11 @@ class LinkResolver(private val historyDao: HistoryDao) {
                          .execute()
                      effectiveUrl = response.url().toString()
                      
-                     // Optimization: Check cache again for the resolved SoundCloud URL
                      val resolvedExisting = historyDao.getHistoryItemByUrl(effectiveUrl)
                      if (resolvedExisting != null && resolvedExisting.isResolved) {
-                         // Update the original short URL to point to this resolved item's data if needed
-                         // For now, just return the resolved one
                          return@withContext resolveLink(effectiveUrl) 
                      }
-                 } catch (e: Exception) {
-                     // Fail silently and try with original URL
-                 }
+                 } catch (e: Exception) {}
             }
 
             // 2. Try Odesli
@@ -101,193 +101,120 @@ class LinkResolver(private val historyDao: HistoryDao) {
                     val body = response.body()!!
                     val entityUniqueId = body.entityUniqueId ?: body.entitiesByUniqueId?.keys?.firstOrNull()
                     
-                    if (entityUniqueId == null) {
-                        return@withContext tryFallback(url, "Odesli returned no entities")
-                    }
+                    if (entityUniqueId != null) {
+                        val entity = body.entitiesByUniqueId?.get(entityUniqueId)
+                        val title = entity?.title
+                        val artist = entity?.artistName
+                        val thumbnail = entity?.thumbnailUrl
+                        
+                        if (!title.isNullOrBlank()) {
+                            val linksJson = Gson().toJson(body.linksByPlatform)
+                            val existingForUrl = historyDao.getHistoryItemByUrl(url)
+                            val newId = existingForUrl?.id ?: 0
+                            
+                            val historyItem = HistoryItem(
+                                id = newId,
+                                originalUrl = url,
+                                songTitle = title,
+                                artistName = artist,
+                                thumbnailUrl = thumbnail,
+                                originalImageUrl = thumbnail,
+                                pageUrl = body.pageUrl,
+                                linksJson = linksJson,
+                                isResolved = true
+                            )
+                            val savedId = historyDao.insert(historyItem)
+                            val historyItemWithId = historyItem.copy(id = savedId)
 
-                    val entity = body.entitiesByUniqueId?.get(entityUniqueId)
-                    val title = entity?.title
-                    val artist = entity?.artistName
-                    val thumbnail = entity?.thumbnailUrl
-                    
-                    if (title.isNullOrBlank()) {
-                         return@withContext tryFallback(url, "Odesli returned empty title")
+                            return@withContext ResolveResult.Success(body, historyItemWithId)
+                        }
                     }
-                    
-                    // Save to History
-                    val linksJson = Gson().toJson(body.linksByPlatform)
-                    
-                    val existingForUrl = historyDao.getHistoryItemByUrl(url)
-                    val newId = existingForUrl?.id ?: 0
-                    
-                    val historyItem = HistoryItem(
-                        id = newId,
-                        originalUrl = url,
-                        songTitle = title,
-                        artistName = artist,
-                        thumbnailUrl = thumbnail,
-                        originalImageUrl = thumbnail,
-                        pageUrl = body.pageUrl,
-                        linksJson = linksJson,
-                        isResolved = true
-                    )
-                    historyDao.insert(historyItem)
-
-                    return@withContext ResolveResult.Success(body, historyItem)
-                } else {
-                    // Diagnostic info for the user
                 }
-            } catch (e: Exception) {
-                // Resolution failed, will fallback below
-            }
+            } catch (e: Exception) {}
             
             // 3. Fallback
-            return@withContext tryFallback(url, "Odesli failed")
+            return@withContext fallbackResolver.tryFallback(url)
         }
     }
 
-    private suspend fun tryFallback(originalUrl: String, @Suppress("UNUSED_PARAMETER") reason: String): ResolveResult {
-        // Special handling for Shazam URLs
-        if (originalUrl.contains("shazam.com")) {
-            return tryShazamFallback(originalUrl)
-        }
-        
-        // 1. Try OEmbed (Limited support: Spotify, Apple Music sometimes)
-        try {
-            val oEmbedUrl = getOEmbedUrl(originalUrl)
-            if (oEmbedUrl != null) {
-                val response = oEmbedApi.getOEmbed(oEmbedUrl)
+    suspend fun searchITunes(query: String, type: String): List<ITunesResult> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val entity = when (type.lowercase()) {
+                    "song" -> "song"
+                    "album" -> "album"
+                    "podcast" -> "podcast,podcastEpisode"
+                    else -> "song"
+                }
+                val response = itunesApi.search(query, entity)
                 if (response.isSuccessful && response.body() != null) {
-                    val data = response.body()!!
-                    val title = data.title ?: "Unknown Title"
-                    val artist = data.authorName
-                    val thumbnail = data.thumbnailUrl
-                    
-                    return createFallbackResult(originalUrl, title, artist, thumbnail)
+                    response.body()!!.results
+                } else {
+                    emptyList()
+                }
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+    }
+
+    suspend fun resolveManual(originalItem: HistoryItem, selectedUrl: String): ResolveResult {
+        return withContext(Dispatchers.IO) {
+            val itemToUpdate = if (originalItem.id == 0L) {
+                historyDao.getHistoryItemByUrl(originalItem.originalUrl) ?: originalItem
+            } else {
+                originalItem
+            }
+
+            var lastError = "Failed to resolve the selected item."
+            
+            for (attempt in 1..2) {
+                try {
+                    val response = odesliApi.resolveLink(selectedUrl)
+                    if (response.isSuccessful && response.body() != null) {
+                        val body = response.body()!!
+                        val entityUniqueId = body.entityUniqueId ?: body.entitiesByUniqueId?.keys?.firstOrNull()
+                        
+                        val entity = body.entitiesByUniqueId?.get(entityUniqueId ?: "")
+                        val title = entity?.title ?: "Unknown Title"
+                        val artist = entity?.artistName
+                        val thumbnail = entity?.thumbnailUrl
+                        val isAlbum = entity?.type == "album"
+                        
+                        val linksJson = Gson().toJson(body.linksByPlatform)
+                        
+                        val historyItem = itemToUpdate.copy(
+                            songTitle = title,
+                            artistName = artist,
+                            isAlbum = isAlbum,
+                            thumbnailUrl = thumbnail,
+                            originalImageUrl = thumbnail,
+                            pageUrl = body.pageUrl,
+                            linksJson = linksJson,
+                            isResolved = true
+                        )
+                        historyDao.update(historyItem)
+
+                        return@withContext ResolveResult.Success(body, historyItem)
+                    } else {
+                        lastError = "Odesli error: ${response.code()} ${response.message()}"
+                    }
+                } catch (e: Exception) {
+                    lastError = "Network error: ${e.message}"
+                }
+                
+                if (attempt == 1) {
+                    kotlinx.coroutines.delay(1500)
                 }
             }
-        } catch (e: Exception) {
-            // OEmbed failed, continue to next fallback
+            
+            return@withContext ResolveResult.Error("$lastError. Please try again.")
         }
-        
-        // 2. Try Direct File Link (MP3, etc.)
-        if (isDirectFile(originalUrl)) {
-             return tryFileFallback(originalUrl)
-        }
-
-        // 3. Generic OpenGraph / Meta Tag Fallback
-        return tryGenericFallback(originalUrl)
-    }
-    
-    private suspend fun tryFileFallback(url: String): ResolveResult {
-         try {
-             // Extract filename from URL
-             val fileName = java.net.URLDecoder.decode(url.substringAfterLast("/"), "UTF-8")
-             val cleanName = fileName.substringBefore("?")
-             
-             return createFallbackResult(url, cleanName, "Direct File", null)
-         } catch (e: Exception) {
-             return ResolveResult.Error("Failed to parse file URL: ${e.message}")
-         }
-    }
-
-    private suspend fun tryGenericFallback(originalUrl: String): ResolveResult {
-        try {
-            // Fetch and parse HTML
-             val doc = withContext(Dispatchers.IO) {
-                 Jsoup.connect(originalUrl)
-                     .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-                     .timeout(5000)
-                     .get()
-             }
-            
-            // Extract metadata from Open Graph tags
-            var title = doc.select("meta[property=og:title]").attr("content")
-            if (title.isBlank()) title = doc.title()
-            
-            val image = doc.select("meta[property=og:image]").attr("content")
-            
-            // Try to find artist/site name
-            var description = doc.select("meta[property=og:description]").attr("content")
-            val siteName = doc.select("meta[property=og:site_name]").attr("content")
-            
-            // Clean metadata: exclude known platform names from being used as the artist name
-            val ignoredSiteNames = listOf(
-                "Spotify", "Apple Music", "Tidal", "Amazon Music", "YouTube Music", 
-                "Deezer", "SoundCloud", "Napster", "Pandora", "Audiomack", 
-                "Anghami", "Boomplay", "Yandex Music", "Audius", "Bandcamp", "Shazam"
-            )
-            
-            val artistOrSite = when {
-                siteName.isNotBlank() && !ignoredSiteNames.any { siteName.equals(it, ignoreCase = true) } -> siteName
-                description.isNotBlank() && description.length < 100 -> description // Use short descriptions as potential artist info
-                else -> null
-            }
-
-            if (title.isNotBlank()) {
-                 return createFallbackResult(originalUrl, title, artistOrSite, image.ifBlank { null })
-            }
-            
-            return ResolveResult.Error("Could not extract metadata")
-            
-        } catch (e: Exception) {
-            return ResolveResult.Error("All resolutions failed: ${e.message}")
-        }
-    }
-
-    private fun isDirectFile(url: String): Boolean {
-        val lower = url.lowercase()
-        return lower.contains(".mp3") || 
-               lower.contains(".m4a") || 
-               lower.contains(".wav") || 
-               lower.contains(".aac") ||
-               lower.contains(".ogg")
-    }
-
-    private suspend fun createFallbackResult(url: String, title: String, artist: String?, thumbnail: String?): ResolveResult {
-        // Check for existing item
-        val existingItem = historyDao.getHistoryItemByUrl(url)
-        val newId = existingItem?.id ?: 0
-
-        val historyItem = HistoryItem(
-            id = newId,
-            originalUrl = url,
-            songTitle = title,
-            artistName = artist,
-            thumbnailUrl = thumbnail,
-            originalImageUrl = thumbnail, // Store original for backup/restore
-            linksJson = "{}", // Empty links
-            isResolved = true
-        )
-        historyDao.insert(historyItem)
-        
-        // Clean the search query aggressively by removing platform names from title/artist
-        val platforms = listOf(
-            "Spotify", "Apple Music", "Tidal", "Amazon Music", "YouTube Music", "YouTube",
-            "Deezer", "SoundCloud", "Napster", "Pandora", "Audiomack", 
-            "Anghami", "Boomplay", "Yandex Music", "Audius", "Bandcamp", "Shazam"
-        )
-        
-        var cleanTitle = title
-        var cleanArtist = artist ?: ""
-        
-        platforms.forEach { platform ->
-            // Case-insensitive removal with optional " - ", " on ", " | ", etc.
-            val regex = "(?i)[\\s\\-\\|]*\\b$platform\\b[\\s\\-\\|]*".toRegex()
-            cleanTitle = cleanTitle.replace(regex, " ").trim()
-            cleanArtist = cleanArtist.replace(regex, " ").trim()
-        }
-
-        val searchQuery = if (cleanArtist.isNotBlank()) "$cleanTitle $cleanArtist" else cleanTitle
-        return ResolveResult.Fallback(historyItem, searchQuery)
     }
 
     suspend fun saveUnresolvedLink(url: String) {
         val existingItem = historyDao.getHistoryItemByUrl(url)
-        if (existingItem != null && existingItem.isResolved) {
-             // If it's already resolved, don't overwrite with unresolved
-             return
-        }
+        if (existingItem != null && existingItem.isResolved) return
         
         val newId = existingItem?.id ?: 0
         val historyItem = HistoryItem(
@@ -302,128 +229,19 @@ class LinkResolver(private val historyDao: HistoryDao) {
         )
         historyDao.insert(historyItem)
     }
-    
-    private suspend fun tryShazamFallback(originalUrl: String): ResolveResult {
-        try {
-            // Fetch and parse Shazam page HTML
-            val doc = withContext(Dispatchers.IO) {
-                Jsoup.connect(originalUrl).get()
-            }
-            
-            // Extract metadata from Open Graph tags
-            val ogTitle = doc.select("meta[property=og:title]").attr("content")
-            val ogImage = doc.select("meta[property=og:image]").attr("content")
-            
-            if (ogTitle.isBlank()) {
-                return ResolveResult.Error("Could not extract metadata from Shazam page")
-            }
-            
-            // Parse title format: "Song Title - Artist Name: Song Lyrics, Music Videos & Concerts"
-            // or "Song Title (feat. Artist) - Main Artist: Song Lyrics..."
-            val titleParts = ogTitle.split(" - ", limit = 2)
-            val songTitle = titleParts.getOrNull(0)?.trim() ?: "Unknown Title"
-            val artistPart = titleParts.getOrNull(1)?.split(":")?.getOrNull(0)?.trim()
-            
-            val thumbnail = ogImage.ifBlank { null }
-            
-            return createFallbackResult(originalUrl, songTitle, artistPart, thumbnail)
-            
-        } catch (e: Exception) {
-            return ResolveResult.Error("Failed to parse Shazam page: ${e.message}")
-        }
-    }
-
-    private fun getOEmbedUrl(url: String): String? {
-        return when {
-            url.contains("spotify.com") -> "https://open.spotify.com/oembed?url=$url"
-            url.contains("music.apple.com") -> "https://music.apple.com/oembed?url=$url" // Note: Apple OEmbed is unofficial/limited, might fail
-            else -> null
-        }
-    }
 
     fun getTargetUrl(response: OdesliResponse, targetApp: String): String? {
         val links = response.linksByPlatform ?: return null
         
-        val platformKey = when (targetApp) {
-            SettingsManager.TARGET_SPOTIFY -> "spotify"
-            SettingsManager.TARGET_APPLE_MUSIC -> "appleMusic"
-            SettingsManager.TARGET_TIDAL -> "tidal"
-            SettingsManager.TARGET_AMAZON_MUSIC -> "amazonMusic"
-            SettingsManager.TARGET_YOUTUBE_MUSIC -> "youtubeMusic"
-            SettingsManager.PLATFORM_DEEZER -> "deezer"
-            SettingsManager.PLATFORM_SOUNDCLOUD -> "soundcloud"
-            SettingsManager.PLATFORM_NAPSTER -> "napster"
-            SettingsManager.PLATFORM_PANDORA -> "pandora"
-            SettingsManager.PLATFORM_AUDIOMACK -> "audiomack"
-            SettingsManager.PLATFORM_ANGHAMI -> "anghami"
-            SettingsManager.PLATFORM_BOOMPLAY -> "boomplay"
-            SettingsManager.PLATFORM_YANDEX -> "yandex"
-            SettingsManager.PLATFORM_AUDIUS -> "audius"
-            SettingsManager.PLATFORM_BANDCAMP -> "bandcamp"
-            SettingsManager.PLATFORM_YOUTUBE -> "youtube"
-            SettingsManager.TARGET_UNIVERSAL -> null // Will be handled in LinkProcessor
-            else -> return response.pageUrl
-        } ?: return null
+        val platformInfo = PlatformRegistry.getPlatformByInternalId(targetApp) ?: return response.pageUrl
+        val platformKey = platformInfo.odesliKey ?: return response.pageUrl
 
         var link = links[platformKey]
         if (link == null && platformKey == "appleMusic") {
             link = links["itunes"]
         }
         
-        // Best Practice: Prefer nativeAppUriMobile for direct app opening, fallback to url
         return link?.nativeAppUriMobile ?: link?.url ?: response.pageUrl
-    }
-    
-    fun getPlatformFromUrl(url: String): String? {
-        return when {
-            url.contains("spotify.com") -> "spotify"
-            url.contains("apple.com") || url.contains("itunes.apple.com") -> "appleMusic"
-            url.contains("tidal.com") -> "tidal"
-            url.contains("amazon.com") -> "amazonMusic"
-            url.contains("music.youtube.com") -> "youtubeMusic"
-            url.contains("youtube.com") || url.contains("youtu.be") -> "youtube"
-            url.contains("deezer.com") -> "deezer"
-            url.contains("soundcloud.com") -> "soundcloud"
-            url.contains("napster.com") -> "napster"
-            url.contains("pandora.com") -> "pandora"
-            url.contains("audiomack.com") -> "audiomack"
-            url.contains("yandex.com") || url.contains("yandex.ru") -> "yandex"
-            url.contains("anghami.com") -> "anghami"
-            url.contains("boomplay.com") -> "boomplay"
-            url.contains("audius.co") -> "audius"
-            url.contains("bandcamp.com") -> "bandcamp"
-            url.contains("shazam.com") -> "shazam"
-            else -> null
-        }
-    }
-
-    fun isPodcastUrl(url: String): Boolean {
-        return url.contains("podcasts.apple.com") ||
-                url.contains("pca.st") ||
-                url.contains("pocketcasts.com") ||
-                url.contains("castbox.fm") ||
-                url.contains("podcastaddict.com") ||
-                url.contains("player.fm") ||
-                url.contains("antennapod.org") ||
-                url.contains("podbean.com") ||
-                url.contains("podcastguru.io") ||
-                url.contains("open.spotify.com/episode") ||
-                url.contains("open.spotify.com/show")
-    }
-
-    fun getPodcastPlatformFromUrl(url: String): String? {
-        return when {
-            url.contains("podcasts.apple.com") -> SettingsManager.TARGET_PODCAST_APPLE
-            url.contains("pca.st") || url.contains("pocketcasts.com") -> SettingsManager.TARGET_PODCAST_POCKET_CASTS
-            url.contains("castbox.fm") -> SettingsManager.TARGET_PODCAST_CASTBOX
-            url.contains("podcastaddict.com") -> SettingsManager.TARGET_PODCAST_PODCAST_ADDICT
-            url.contains("player.fm") -> SettingsManager.TARGET_PODCAST_PLAYER_FM
-            url.contains("antennapod.org") -> SettingsManager.TARGET_PODCAST_ANTENNAPOD
-            url.contains("podbean.com") -> SettingsManager.TARGET_PODCAST_PODBEAN
-            url.contains("podcastguru.io") -> SettingsManager.TARGET_PODCAST_PODCAST_GURU
-            url.contains("spotify.com") -> SettingsManager.TARGET_PODCAST_SPOTIFY
-            else -> null
-        }
     }
 
     fun getPodcastTargetUrl(response: OdesliResponse, targetApp: String): String? {

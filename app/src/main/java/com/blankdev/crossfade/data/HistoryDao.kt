@@ -12,7 +12,7 @@ interface HistoryDao {
     fun getAllHistory(): Flow<List<HistoryItem>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(item: HistoryItem)
+    suspend fun insert(item: HistoryItem): Long
 
     @androidx.room.Update
     suspend fun update(item: HistoryItem)

@@ -4,23 +4,19 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
-import android.widget.TextView
 import android.widget.Toast
-import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.blankdev.crossfade.CrossfadeApp
 import com.blankdev.crossfade.R
 import com.blankdev.crossfade.api.PlatformLink
 import com.blankdev.crossfade.data.HistoryItem
 import com.blankdev.crossfade.databinding.BottomSheetShareBinding
+import com.blankdev.crossfade.utils.PlatformRegistry
 import com.blankdev.crossfade.utils.SettingsManager
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -49,6 +45,21 @@ class ShareBottomSheet : BottomSheetDialogFragment() {
         const val TYPE_ACTION = 3
         
         const val ID_CLEAR_ITEM = "clear_item"
+        const val ID_FIX_MATCH = "fix_match"
+
+        fun showResolveFlow(
+            fragmentManager: androidx.fragment.app.FragmentManager,
+            item: HistoryItem,
+            onResolved: (HistoryItem) -> Unit
+        ) {
+            val typeSheet = ResolveTypeBottomSheet()
+            typeSheet.onTypeSelected = { type ->
+                val searchSheet = ResolveSearchBottomSheet.newInstance(item, type)
+                searchSheet.onResolved = onResolved
+                searchSheet.show(fragmentManager, "resolve_search")
+            }
+            typeSheet.show(fragmentManager, "resolve_type")
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,7 +100,6 @@ class ShareBottomSheet : BottomSheetDialogFragment() {
             emptyMap()
         }
 
-        // Merge iTunes into Apple Music
         val links = com.blankdev.crossfade.utils.LinkUtils.mergeAppleMusicLinks(rawLinks)
 
         val menuItems = buildMenuItems(currentItem, links)
@@ -125,7 +135,6 @@ class ShareBottomSheet : BottomSheetDialogFragment() {
         )
         binding.shareRecyclerView.adapter = adapter
         
-        // Auto-expand "More..." if "Ask everytime" (Universal) is the target
         val targetApp = CrossfadeApp.instance.settingsManager.targetApp
         if (targetApp == SettingsManager.TARGET_UNIVERSAL) {
             menuItems.find { it.id == "header_more" }?.isExpanded = true
@@ -150,12 +159,18 @@ class ShareBottomSheet : BottomSheetDialogFragment() {
                     .setNegativeButton("Cancel", null)
                     .show()
             }
+        } else if (menuItem.id == ID_FIX_MATCH) {
+            showResolveFlow(parentFragmentManager, currentItem) { updatedItem ->
+                item = updatedItem
+                setupMenu()
+            }
         }
     }
 
     private fun buildMenuItems(item: HistoryItem, links: Map<String, PlatformLink>): List<MenuItemData> {
         val list = mutableListOf<MenuItemData>()
-        val sourcePlatform = getPlatformFromUrl(item.originalUrl)
+        val sourcePlatformId = PlatformRegistry.getPlatformFromUrl(item.originalUrl)
+        val sourcePlatform = sourcePlatformId?.let { PlatformRegistry.getPlatformByInternalId(it) }
 
         if (item.isResolved) {
             // 1. Source URL
@@ -164,55 +179,53 @@ class ShareBottomSheet : BottomSheetDialogFragment() {
                 title = "Source URL",
                 url = item.originalUrl,
                 type = TYPE_ITEM,
-                iconResId = getIconForPlatform(sourcePlatform ?: "")
+                iconResId = sourcePlatform?.iconResId ?: R.drawable.ic_placeholder_service
             ))
 
             // 2. Preferred App
             val targetApp = CrossfadeApp.instance.settingsManager.targetApp
-            val targetPlatformKey = getPlatformKeyForTarget(targetApp)
+            val targetPlatform = PlatformRegistry.getPlatformByInternalId(targetApp)
             
-            // Find preferred link
             var preferredUrl: String? = null
-            if (targetPlatformKey == "odesli") {
-                preferredUrl = item.pageUrl ?: "https://odesli.co/?q=${Uri.encode(item.originalUrl)}"
-            } else if (targetPlatformKey != null) {
-                preferredUrl = links[targetPlatformKey]?.url
+            if (targetApp == SettingsManager.TARGET_UNIVERSAL) {
+                 // No single preferred app for Universal
+            } else if (targetPlatform != null) {
+                if (targetPlatform.odesliKey == "odesli") {
+                    preferredUrl = item.pageUrl ?: "https://odesli.co/?q=${com.blankdev.crossfade.utils.LinkProcessor.openUrl(requireContext(), item.originalUrl)}"
+                } else if (targetPlatform.odesliKey != null) {
+                    preferredUrl = links[targetPlatform.odesliKey]?.url
+                }
             }
             
-            if (preferredUrl != null) {
+            if (preferredUrl != null && targetPlatform != null) {
                 list.add(MenuItemData(
                     id = "target_link",
-                    title = getPrettyPlatformName(targetPlatformKey!!),
+                    title = targetPlatform.displayName,
                     url = preferredUrl,
                     type = TYPE_ITEM,
-                    iconResId = getIconForPlatform(targetPlatformKey)
+                    iconResId = targetPlatform.iconResId
                 ))
             }
 
             // 3. Additional Apps
             val enabledServices = CrossfadeApp.instance.settingsManager.additionalServices
-            
-            // Collect all potential additional links
             val additionalItems = mutableListOf<MenuItemData>()
             
-            // From regular platform links
-            links.filter { (key, link) ->
-                // Filter out the target app (already shown) AND the source platform (already shown as source)
-                key != targetPlatformKey && key != sourcePlatform && enabledServices.contains(key) && link.url != null
-            }.forEach { (key, link) ->
-                additionalItems.add(MenuItemData(
-                    id = "additional_$key",
-                    title = getPrettyPlatformName(key),
-                    url = link.url,
-                    type = TYPE_ITEM,
-                    iconResId = getIconForPlatform(key)
-                ))
+            links.forEach { (key, link) ->
+                val platform = PlatformRegistry.getPlatformByOdesliKey(key)
+                if (platform != null && platform.internalId != targetApp && platform.internalId != sourcePlatformId && enabledServices.contains(key) && link.url != null) {
+                    additionalItems.add(MenuItemData(
+                        id = "additional_$key",
+                        title = platform.displayName,
+                        url = link.url,
+                        type = TYPE_ITEM,
+                        iconResId = platform.iconResId
+                    ))
+                }
             }
             
-            // From Odesli (if enabled and not target/source)
-            // ONLY if links are not empty. If links are empty, we'll show Search Fallback instead.
-            if (links.isNotEmpty() && enabledServices.contains("odesli") && targetPlatformKey != "odesli" && sourcePlatform != "odesli") {
-                val odesliUrl = item.pageUrl ?: "https://odesli.co/?q=${Uri.encode(item.originalUrl)}"
+            if (enabledServices.contains("odesli") && targetApp != "odesli" && sourcePlatformId != "odesli") {
+                val odesliUrl = item.pageUrl ?: "https://odesli.co/?q=${android.net.Uri.encode(item.originalUrl)}"
                 additionalItems.add(MenuItemData(
                     id = "additional_odesli",
                     title = "Odesli",
@@ -223,7 +236,6 @@ class ShareBottomSheet : BottomSheetDialogFragment() {
             }
 
             if (additionalItems.isNotEmpty()) {
-                // If it's a "Ask everytime" target, we ALWAYS want it under "More..." to support auto-expansion
                 val isAskEverytime = targetApp == SettingsManager.TARGET_UNIVERSAL
                 
                 if (additionalItems.size == 1 && !isAskEverytime) {
@@ -239,7 +251,6 @@ class ShareBottomSheet : BottomSheetDialogFragment() {
                 }
             }
 
-            // 4. Search on Odesli... (Only if no platform links were found - the "scraped but unresolved" case)
             if (additionalItems.isEmpty() && preferredUrl == null) {
                 val searchQuery = if (!item.songTitle.isNullOrBlank()) {
                     if (!item.artistName.isNullOrBlank()) "${item.songTitle} ${item.artistName}" else item.songTitle
@@ -250,33 +261,37 @@ class ShareBottomSheet : BottomSheetDialogFragment() {
                 list.add(MenuItemData(
                     id = "search_odesli_fallback",
                     title = "Search on Odesli...",
-                    url = "https://odesli.co/?q=${Uri.encode(searchQuery)}",
+                    url = "https://odesli.co/?q=${android.net.Uri.encode(searchQuery)}",
                     type = TYPE_ITEM,
                     iconResId = R.drawable.ic_search
                 ))
             }
         } else {
-            // Logic for TRULY UNRESOLVED items
-            // 1. Source URL
             list.add(MenuItemData(
                 id = "source_url_unresolved",
                 title = "Source URL",
                 url = item.originalUrl,
                 type = TYPE_ITEM,
-                iconResId = getIconForPlatform(sourcePlatform ?: "")
+                iconResId = sourcePlatform?.iconResId ?: R.drawable.ic_placeholder_service
             ))
 
-            // 2. Search on Odesli...
             list.add(MenuItemData(
                 id = "search_odesli",
                 title = "Search on Odesli...",
-                url = "https://odesli.co/?q=${Uri.encode(item.originalUrl)}",
+                url = "https://odesli.co/?q=${android.net.Uri.encode(item.originalUrl)}",
                 type = TYPE_ITEM,
                 iconResId = R.drawable.ic_search
             ))
         }
 
-        // 4. Clear Item
+        list.add(MenuItemData(
+            id = ID_FIX_MATCH,
+            title = if (item.isResolved) "Fix match" else "Resolve",
+            type = TYPE_ACTION,
+            isAction = true,
+            iconResId = R.drawable.ic_search
+        ))
+
         list.add(MenuItemData(
             id = ID_CLEAR_ITEM,
             title = "Clear item",
@@ -286,102 +301,4 @@ class ShareBottomSheet : BottomSheetDialogFragment() {
 
         return list
     }
-    
-    // ... helper methods ...
-    private fun getPlatformKeyForTarget(target: String): String? {
-        return when (target) {
-            SettingsManager.TARGET_SPOTIFY -> "spotify"
-            SettingsManager.TARGET_APPLE_MUSIC -> "appleMusic"
-            SettingsManager.TARGET_TIDAL -> "tidal"
-            SettingsManager.TARGET_AMAZON_MUSIC -> "amazonMusic"
-            SettingsManager.TARGET_YOUTUBE_MUSIC -> "youtubeMusic"
-            // For "Ask everytime", we return null so it's treated as additional services (moving it to "More...")
-            SettingsManager.TARGET_UNIVERSAL -> null
-            SettingsManager.PLATFORM_DEEZER -> "deezer"
-            SettingsManager.PLATFORM_SOUNDCLOUD -> "soundcloud"
-            SettingsManager.PLATFORM_NAPSTER -> "napster"
-            SettingsManager.PLATFORM_PANDORA -> "pandora"
-            SettingsManager.PLATFORM_AUDIOMACK -> "audiomack"
-            SettingsManager.PLATFORM_ANGHAMI -> "anghami"
-            SettingsManager.PLATFORM_BOOMPLAY -> "boomplay"
-            SettingsManager.PLATFORM_YANDEX -> "yandex"
-            SettingsManager.PLATFORM_AUDIUS -> "audius"
-            SettingsManager.PLATFORM_BANDCAMP -> "bandcamp"
-            SettingsManager.PLATFORM_YOUTUBE -> "youtube"
-            else -> null
-        }
-    }
-
-    private fun getPrettyPlatformName(key: String): String {
-        return when(key) {
-            "spotify" -> "Spotify"
-            "appleMusic" -> "Apple Music"
-            "youtubeMusic" -> "YouTube Music"
-            "youtube" -> "YouTube"
-            "tidal" -> "Tidal"
-            "amazonMusic" -> "Amazon Music"
-            "deezer" -> "Deezer"
-            "soundcloud" -> "SoundCloud"
-            "napster" -> "Napster"
-            "pandora" -> "Pandora"
-            "audiomack" -> "Audiomack"
-            "shazam" -> "Shazam"
-            "yandex" -> "Yandex Music"
-            "anghami" -> "Anghami"
-            "boomplay" -> "Boomplay"
-            "bandcamp" -> "Bandcamp"
-            "audius" -> "Audius"
-            "odesli" -> "Odesli"
-            else -> key.replaceFirstChar { it.uppercase() }
-        }
-    }
-
-    private fun getIconForPlatform(key: String): Int? {
-        return when(key) {
-             "spotify" -> R.drawable.ic_spotify
-             "appleMusic" -> R.drawable.ic_apple_music
-             "youtubeMusic" -> R.drawable.ic_youtube_music
-             "tidal" -> R.drawable.ic_tidal
-             "amazonMusic" -> R.drawable.ic_amazon_music
-             "shazam" -> R.drawable.ic_shazam
-             "soundcloud" -> R.drawable.ic_soundcloud
-             "youtube" -> R.drawable.ic_youtube
-             "deezer" -> R.drawable.ic_deezer
-             "napster" -> R.drawable.ic_napster
-             "pandora" -> R.drawable.ic_pandora
-             "audiomack" -> R.drawable.ic_audiomack
-             "yandex" -> R.drawable.ic_yandex_music
-             "bandcamp" -> R.drawable.ic_bandcamp
-             "anghami" -> R.drawable.ic_anghami
-             "boomplay" -> R.drawable.ic_boomplay
-             "audius" -> R.drawable.ic_audius
-             "odesli" -> R.drawable.ic_odesli
-             else -> R.drawable.ic_placeholder_service
-        }
-    }
-
-    private fun getPlatformFromUrl(url: String): String? {
-        return when {
-            url.contains("spotify.com") -> "spotify"
-            url.contains("apple.com") || url.contains("itunes.apple.com") -> "appleMusic"
-            url.contains("music.youtube.com") -> "youtubeMusic"
-            url.contains("youtube.com") || url.contains("youtu.be") -> "youtube"
-            url.contains("tidal.com") -> "tidal"
-            url.contains("amazon.com") -> "amazonMusic"
-            url.contains("shazam.com") -> "shazam"
-            url.contains("soundcloud.com") -> "soundcloud"
-            url.contains("deezer.com") -> "deezer"
-            url.contains("napster.com") -> "napster"
-            url.contains("pandora.com") -> "pandora"
-            url.contains("audiomack.com") -> "audiomack"
-            url.contains("yandex.com") || url.contains("yandex.ru") -> "yandex"
-            url.contains("anghami.com") -> "anghami"
-            url.contains("boomplay.com") -> "boomplay"
-            url.contains("bandcamp.com") -> "bandcamp"
-            url.contains("odesli.co") || url.contains("song.link") || url.contains("album.link") -> "odesli"
-            else -> null
-        }
-    }
-
-
 }

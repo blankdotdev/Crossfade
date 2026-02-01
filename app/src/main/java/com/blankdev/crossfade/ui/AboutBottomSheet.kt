@@ -6,6 +6,10 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
 import com.blankdev.crossfade.BuildConfig
 import com.blankdev.crossfade.databinding.BottomSheetAboutBinding
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -29,13 +33,30 @@ class AboutBottomSheet : BottomSheetDialogFragment() {
 
         binding.txtVersion.text = "Version ${BuildConfig.VERSION_NAME}"
 
-        binding.btnOdesli.setOnClickListener {
-            openUrl("https://odesli.co/")
-        }
+        setupOdesliLink()
 
         binding.btnGithub.setOnClickListener {
             openUrl("https://github.com/blankdotdev")
         }
+    }
+
+    private fun setupOdesliLink() {
+        val text = binding.txtOdesliThankYou.text.toString()
+        val spannableString = SpannableString(text)
+        val odesli = "Odesli"
+        val start = text.indexOf(odesli)
+        
+        if (start != -1) {
+            val clickableSpan = object : ClickableSpan() {
+                override fun onClick(view: View) {
+                    openUrl("https://odesli.co/")
+                }
+            }
+            spannableString.setSpan(clickableSpan, start, start + odesli.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+
+        binding.txtOdesliThankYou.text = spannableString
+        binding.txtOdesliThankYou.movementMethod = LinkMovementMethod.getInstance()
     }
 
     private fun openUrl(url: String) {

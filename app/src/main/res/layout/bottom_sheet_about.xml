@@ -34,26 +34,13 @@
         android:layout_marginBottom="24dp" />
 
     <TextView
+        android:id="@+id/txtOdesliThankYou"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Thank you to Odesli for their incredible API that makes this app possible."
+        android:text="Thank you to Odesli for the incredible API!"
         android:textColor="?attr/colorOnSurface"
         android:textSize="16sp"
         android:gravity="center"
-        android:layout_marginBottom="8dp" />
-
-    <TextView
-        android:id="@+id/btnOdesli"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:text="Odesli API"
-        android:textColor="?attr/colorPrimary"
-        android:textSize="16sp"
-        android:padding="8dp"
-        android:background="?attr/selectableItemBackground"
-        android:clickable="true"
-        android:focusable="true"
         android:layout_marginBottom="16dp" />
 
     <View

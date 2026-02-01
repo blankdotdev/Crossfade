@@ -52,13 +52,9 @@ class ShareBottomSheet : BottomSheetDialogFragment() {
             item: HistoryItem,
             onResolved: (HistoryItem) -> Unit
         ) {
-            val typeSheet = ResolveTypeBottomSheet()
-            typeSheet.onTypeSelected = { type ->
-                val searchSheet = ResolveSearchBottomSheet.newInstance(item, type)
-                searchSheet.onResolved = onResolved
-                searchSheet.show(fragmentManager, "resolve_search")
-            }
-            typeSheet.show(fragmentManager, "resolve_type")
+            val searchSheet = ResolveSearchBottomSheet.newInstance(item, "Song")
+            searchSheet.onResolved = onResolved
+            searchSheet.show(fragmentManager, "resolve_search")
         }
     }
 

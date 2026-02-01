@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2026-02-01
+- Automatic redirection to "Fix Match" flow when a link cannot be resolved.
+
 ## [1.1.0] - 2026-02-01
 - New "Fix Match" flow for manual link resolution.
 - UX, performance and minor fixes.

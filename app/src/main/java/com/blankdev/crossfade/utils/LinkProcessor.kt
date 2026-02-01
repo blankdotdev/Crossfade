@@ -12,6 +12,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.blankdev.crossfade.ui.MainActivity
+import com.blankdev.crossfade.ui.RedirectActivity
+import com.blankdev.crossfade.ui.ShareBottomSheet
 
 object LinkProcessor {
 
@@ -122,17 +125,23 @@ object LinkProcessor {
 
                         if (shouldNavigate) {
                             if (context is androidx.fragment.app.FragmentActivity) {
-                                com.blankdev.crossfade.ui.ShareBottomSheet.showResolveFlow(
-                                    context.supportFragmentManager,
-                                    result.historyItem
-                                ) { updatedItem ->
-                                    handleResolutionSuccess(context, updatedItem)
+                                if (context is RedirectActivity) {
+                                    redirectToFixMatch(context, url, result.historyItem)
+                                    onComplete(false)
+                                } else {
+                                    ShareBottomSheet.showResolveFlow(
+                                        context.supportFragmentManager,
+                                        result.historyItem
+                                    ) { updatedItem ->
+                                        handleResolutionSuccess(context, updatedItem)
+                                    }
+                                    onComplete(true)
                                 }
                             } else {
                                 Toast.makeText(context, "Exact match failed. Searching...", Toast.LENGTH_SHORT).show()
                                 performSearch(context, result.searchQuery, targetApp)
+                                onComplete(true)
                             }
-                            onComplete(true)
                         } else {
                             onComplete(false)
                         }
@@ -141,30 +150,48 @@ object LinkProcessor {
                         resolver.saveUnresolvedLink(url)
                         
                         if (context is androidx.fragment.app.FragmentActivity) {
-                             scope.launch {
-                                 val item = app.database.historyDao().getHistoryItemByUrl(url)
-                                 withContext(Dispatchers.Main) {
-                                     if (item != null) {
-                                         com.blankdev.crossfade.ui.ShareBottomSheet.showResolveFlow(
-                                             context.supportFragmentManager,
-                                             item
-                                         ) { updatedItem ->
-                                             handleResolutionSuccess(context, updatedItem)
-                                         }
-                                     } else {
-                                         Toast.makeText(context, "Link unresolved, saved to list", Toast.LENGTH_SHORT).show()
-                                     }
-                                 }
-                             }
+                            if (context is RedirectActivity) {
+                                val item = app.database.historyDao().getHistoryItemByUrl(url)
+                                redirectToFixMatch(context, url, item)
+                                onComplete(false)
+                            } else {
+                                scope.launch {
+                                    val item = app.database.historyDao().getHistoryItemByUrl(url)
+                                    withContext(Dispatchers.Main) {
+                                        if (item != null) {
+                                            ShareBottomSheet.showResolveFlow(
+                                                context.supportFragmentManager,
+                                                item
+                                            ) { updatedItem ->
+                                                handleResolutionSuccess(context, updatedItem)
+                                            }
+                                        } else {
+                                            Toast.makeText(context, "Link unresolved, saved to list", Toast.LENGTH_SHORT).show()
+                                        }
+                                        onComplete(false)
+                                    }
+                                }
+                            }
                         } else {
-                             Toast.makeText(context, "Link unresolved, saved to list", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Link unresolved, saved to list", Toast.LENGTH_SHORT).show()
+                            onComplete(false)
                         }
-                        
-                        onComplete(false)
                     }
                 }
             }
         }
+    }
+
+    private fun redirectToFixMatch(context: Context, url: String, item: com.blankdev.crossfade.data.HistoryItem? = null) {
+        val mainIntent = Intent(context, MainActivity::class.java).apply {
+            action = MainActivity.ACTION_FIX_MATCH
+            putExtra(MainActivity.EXTRA_URL, url)
+            if (item != null) {
+                putExtra(MainActivity.EXTRA_ITEM_JSON, Gson().toJson(item))
+            }
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        }
+        context.startActivity(mainIntent)
     }
 
     private fun showMenu(context: Context, item: com.blankdev.crossfade.data.HistoryItem) {
@@ -207,7 +234,7 @@ object LinkProcessor {
         }
     }
 
-    private fun handleResolutionSuccess(context: Context, item: com.blankdev.crossfade.data.HistoryItem) {
+    fun handleResolutionSuccess(context: Context, item: com.blankdev.crossfade.data.HistoryItem) {
         val app = CrossfadeApp.instance
         val settings = app.settingsManager
         val resolver = app.linkResolver

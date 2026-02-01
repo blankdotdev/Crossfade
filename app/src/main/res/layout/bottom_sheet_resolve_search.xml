@@ -11,9 +11,34 @@
         android:id="@+id/resolveTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Search for Song"
+        android:text="Fix Match"
         android:textAppearance="?attr/textAppearanceHeadline6"
-        android:layout_marginBottom="16dp"/>
+        android:layout_marginBottom="8dp"/>
+
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/toggleGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        app:singleSelection="true"
+        app:checkedButton="@+id/btnTypeSong">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnTypeSong"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Song"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnTypeAlbum"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Album"/>
+
+    </com.google.android.material.button.MaterialButtonToggleGroup>
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/searchLayout"

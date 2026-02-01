@@ -157,6 +157,38 @@ class MainActivity : AppCompatActivity() {
     private fun handleIntent(intent: Intent?) {
         // MainActivity only handles non-VIEW/SEND intents (e.g., from launcher)
         // External links are now handled by RedirectActivity
+        
+        if (intent?.action == ACTION_FIX_MATCH) {
+            val itemJson = intent.getStringExtra(EXTRA_ITEM_JSON)
+            val url = intent.getStringExtra(EXTRA_URL)
+            
+            if (itemJson != null) {
+                try {
+                    val item = Gson().fromJson(itemJson, HistoryItem::class.java)
+                    ShareBottomSheet.showResolveFlow(supportFragmentManager, item) { updatedItem ->
+                        com.blankdev.crossfade.utils.LinkProcessor.handleResolutionSuccess(this, updatedItem)
+                        finish()
+                    }
+                    return
+                } catch (e: Exception) {
+                    // Fallback to URL lookup
+                }
+            }
+            
+            if (url != null) {
+                lifecycleScope.launch {
+                    val item = CrossfadeApp.instance.database.historyDao().getHistoryItemByUrl(url)
+                    if (item != null) {
+                        ShareBottomSheet.showResolveFlow(supportFragmentManager, item) { updatedItem ->
+                            com.blankdev.crossfade.utils.LinkProcessor.handleResolutionSuccess(this@MainActivity, updatedItem)
+                            finish()
+                        }
+                    } else {
+                        Toast.makeText(this@MainActivity, "Item not found in history", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
     }
 
     private fun processUrl(url: String, forceNavigate: Boolean = false, historyItem: HistoryItem? = null) {
@@ -299,5 +331,11 @@ class MainActivity : AppCompatActivity() {
                 binding.emptyState.iconTarget.setImageResource(iconRes)
             }
         }
+    }
+
+    companion object {
+        const val ACTION_FIX_MATCH = "com.blankdev.crossfade.ACTION_FIX_MATCH"
+        const val EXTRA_URL = "com.blankdev.crossfade.EXTRA_URL"
+        const val EXTRA_ITEM_JSON = "com.blankdev.crossfade.EXTRA_ITEM_JSON"
     }
 }

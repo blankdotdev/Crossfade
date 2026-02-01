@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.blankdev.crossfade.CrossfadeApp
+import com.blankdev.crossfade.R
 import com.blankdev.crossfade.api.ITunesResult
 import com.blankdev.crossfade.data.HistoryItem
 import com.blankdev.crossfade.data.ResolveResult
@@ -63,13 +64,29 @@ class ResolveSearchBottomSheet : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        binding.resolveTitle.text = "Search for $type"
-        
         val adapter = ResultsAdapter { selectedResult ->
             resolveItem(selectedResult)
         }
         binding.resultsRecyclerView.layoutManager = LinearLayoutManager(context)
         binding.resultsRecyclerView.adapter = adapter
+        
+        binding.toggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                type = when (checkedId) {
+                    R.id.btnTypeSong -> "Song"
+                    R.id.btnTypeAlbum -> "Album"
+                    else -> "Song"
+                }
+                performSearch(binding.searchEditText.text.toString(), adapter)
+            }
+        }
+
+        // Set initial state
+        if (type == "Album") {
+            binding.toggleGroup.check(R.id.btnTypeAlbum)
+        } else {
+            binding.toggleGroup.check(R.id.btnTypeSong)
+        }
         
         binding.searchEditText.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {

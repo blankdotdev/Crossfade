@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.2] - 2026-02-02
+- Added monochrome app icon support for Android 13+ theming.
+
 ## [1.1.1] - 2026-02-01
 - Automatic redirection to "Fix Match" flow when a link cannot be resolved.
 

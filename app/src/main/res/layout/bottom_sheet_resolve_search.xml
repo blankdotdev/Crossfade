@@ -38,6 +38,7 @@
             android:layout_height="wrap_content"
             android:text="Album"/>
 
+
     </com.google.android.material.button.MaterialButtonToggleGroup>
 
     <com.google.android.material.textfield.TextInputLayout

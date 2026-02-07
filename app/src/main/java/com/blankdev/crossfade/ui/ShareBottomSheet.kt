@@ -144,9 +144,9 @@ class ShareBottomSheet : BottomSheetDialogFragment() {
         if (menuItem.id == ID_CLEAR_ITEM) {
             context?.let { ctx ->
                 MaterialAlertDialogBuilder(ctx)
-                    .setTitle("Delete Item")
-                    .setMessage("Are you sure you want to remove this item from history?")
-                    .setPositiveButton("Delete") { _, _ ->
+                    .setTitle("Clear item?")
+                    .setMessage("Are you sure you want to clear this item from your history?")
+                    .setPositiveButton("Clear") { _, _ ->
                          lifecycleScope.launch {
                             CrossfadeApp.instance.database.historyDao().delete(currentItem)
                             dismiss()
@@ -178,89 +178,103 @@ class ShareBottomSheet : BottomSheetDialogFragment() {
                 iconResId = sourcePlatform?.iconResId ?: R.drawable.ic_placeholder_service
             ))
 
-            // 2. Preferred App
-            val targetApp = CrossfadeApp.instance.settingsManager.targetApp
-            val targetPlatform = PlatformRegistry.getPlatformByInternalId(targetApp)
-            
-            var preferredUrl: String? = null
-            if (targetApp == SettingsManager.TARGET_UNIVERSAL) {
-                 // No single preferred app for Universal
-            } else if (targetPlatform != null) {
-                if (targetPlatform.odesliKey == "odesli") {
-                    preferredUrl = item.pageUrl ?: "https://odesli.co/?q=${com.blankdev.crossfade.utils.LinkProcessor.openUrl(requireContext(), item.originalUrl)}"
-                } else if (targetPlatform.odesliKey != null) {
-                    preferredUrl = links[targetPlatform.odesliKey]?.url
-                }
-            }
-            
-            if (preferredUrl != null && targetPlatform != null) {
+            // 2. Links
+            val isPodcastOrEpisode = item.isPodcast || item.isPodcastEpisode
+            if (isPodcastOrEpisode) {
                 list.add(MenuItemData(
-                    id = "target_link",
-                    title = targetPlatform.displayName,
-                    url = preferredUrl,
-                    type = TYPE_ITEM,
-                    iconResId = targetPlatform.iconResId
-                ))
-            }
-
-            // 3. Additional Apps
-            val enabledServices = CrossfadeApp.instance.settingsManager.additionalServices
-            val additionalItems = mutableListOf<MenuItemData>()
-            
-            links.forEach { (key, link) ->
-                val platform = PlatformRegistry.getPlatformByOdesliKey(key)
-                if (platform != null && platform.internalId != targetApp && platform.internalId != sourcePlatformId && enabledServices.contains(key) && link.url != null) {
-                    additionalItems.add(MenuItemData(
-                        id = "additional_$key",
-                        title = platform.displayName,
-                        url = link.url,
-                        type = TYPE_ITEM,
-                        iconResId = platform.iconResId
-                    ))
-                }
-            }
-            
-            if (enabledServices.contains("odesli") && targetApp != "odesli" && sourcePlatformId != "odesli") {
-                val odesliUrl = item.pageUrl ?: "https://odesli.co/?q=${android.net.Uri.encode(item.originalUrl)}"
-                additionalItems.add(MenuItemData(
-                    id = "additional_odesli",
-                    title = "Odesli",
-                    url = odesliUrl,
-                    type = TYPE_ITEM,
-                    iconResId = R.drawable.ic_odesli
-                ))
-            }
-
-            if (additionalItems.isNotEmpty()) {
-                val isAskEverytime = targetApp == SettingsManager.TARGET_UNIVERSAL
-                
-                if (additionalItems.size == 1 && !isAskEverytime) {
-                    list.add(additionalItems[0])
-                } else {
-                    val subItems = additionalItems.map { it.copy(type = TYPE_SUBMENU_ITEM) }
-                    list.add(MenuItemData(
-                        id = "header_more",
-                        title = "More...",
-                        type = TYPE_SUBMENU_HEADER,
-                        subItems = subItems
-                    ))
-                }
-            }
-
-            if (additionalItems.isEmpty() && preferredUrl == null) {
-                val searchQuery = if (!item.songTitle.isNullOrBlank()) {
-                    if (!item.artistName.isNullOrBlank()) "${item.songTitle} ${item.artistName}" else item.songTitle
-                } else {
-                    item.originalUrl
-                }
-
-                list.add(MenuItemData(
-                    id = "search_odesli_fallback",
+                    id = "search_odesli_podcast",
                     title = "Search on Odesli...",
-                    url = "https://odesli.co/?q=${android.net.Uri.encode(searchQuery)}",
+                    url = "https://odesli.co/?q=${android.net.Uri.encode(item.originalUrl)}",
                     type = TYPE_ITEM,
                     iconResId = R.drawable.ic_search
                 ))
+            } else {
+                val targetApp = CrossfadeApp.instance.settingsManager.targetApp
+                val targetPlatform = PlatformRegistry.getPlatformByInternalId(targetApp)
+                val enabledServices = CrossfadeApp.instance.settingsManager.additionalServices
+                val additionalItems = mutableListOf<MenuItemData>()
+                
+                var preferredUrl: String? = null
+                if (targetApp == SettingsManager.TARGET_UNIVERSAL) {
+                     // No single preferred app for Universal
+                } else if (targetPlatform != null) {
+                    if (targetPlatform.odesliKey == "odesli") {
+                        preferredUrl = item.pageUrl ?: "https://odesli.co/?q=${com.blankdev.crossfade.utils.LinkProcessor.openUrl(requireContext(), item.originalUrl)}"
+                    } else if (targetPlatform.odesliKey != null) {
+                        preferredUrl = links[targetPlatform.odesliKey]?.url
+                    }
+                }
+                
+                if (preferredUrl != null && targetPlatform != null) {
+                    list.add(MenuItemData(
+                        id = "target_link",
+                        title = targetPlatform.displayName,
+                        url = preferredUrl,
+                        type = TYPE_ITEM,
+                        iconResId = targetPlatform.iconResId
+                    ))
+                }
+
+                links.forEach { (key, link) ->
+                    val platform = PlatformRegistry.getPlatformByOdesliKey(key)
+                    if (platform != null && link.url != null) {
+                        val isSource = platform.internalId == sourcePlatformId
+                        val isPreferred = platform.internalId == targetApp
+                        val isEnabled = enabledServices.contains(key)
+                        
+                        if (!isSource && !isPreferred && isEnabled) {
+                            additionalItems.add(MenuItemData(
+                                id = "additional_$key",
+                                title = platform.displayName,
+                                url = link.url,
+                                type = TYPE_ITEM,
+                                iconResId = platform.iconResId
+                            ))
+                        }
+                    }
+                }
+                
+                if (enabledServices.contains("odesli") && targetApp != "odesli" && sourcePlatformId != "odesli") {
+                    val odesliUrl = item.pageUrl ?: "https://odesli.co/?q=${android.net.Uri.encode(item.originalUrl)}"
+                    additionalItems.add(MenuItemData(
+                        id = "additional_odesli",
+                        title = "Odesli",
+                        url = odesliUrl,
+                        type = TYPE_ITEM,
+                        iconResId = R.drawable.ic_odesli
+                    ))
+                }
+
+                if (additionalItems.isNotEmpty()) {
+                    val isAskEverytime = targetApp == SettingsManager.TARGET_UNIVERSAL
+                    if (additionalItems.size == 1 && !isAskEverytime) {
+                        list.add(additionalItems[0])
+                    } else {
+                        val subItems = additionalItems.map { it.copy(type = TYPE_SUBMENU_ITEM) }
+                        list.add(MenuItemData(
+                            id = "header_more",
+                            title = "More...",
+                            type = TYPE_SUBMENU_HEADER,
+                            subItems = subItems
+                        ))
+                    }
+                }
+                
+                if (additionalItems.isEmpty() && preferredUrl == null) {
+                    val searchQuery = if (!item.songTitle.isNullOrBlank()) {
+                        if (!item.artistName.isNullOrBlank()) "${item.songTitle} ${item.artistName}" else item.songTitle
+                    } else {
+                        item.originalUrl
+                    }
+
+                    list.add(MenuItemData(
+                        id = "search_odesli_fallback",
+                        title = "Search on Odesli...",
+                        url = "https://odesli.co/?q=${android.net.Uri.encode(searchQuery)}",
+                        type = TYPE_ITEM,
+                        iconResId = R.drawable.ic_search
+                    ))
+                }
             }
         } else {
             list.add(MenuItemData(
@@ -280,13 +294,15 @@ class ShareBottomSheet : BottomSheetDialogFragment() {
             ))
         }
 
-        list.add(MenuItemData(
-            id = ID_FIX_MATCH,
-            title = if (item.isResolved) "Fix match" else "Resolve",
-            type = TYPE_ACTION,
-            isAction = true,
-            iconResId = R.drawable.ic_search
-        ))
+        if (!item.isPodcast && !item.isPodcastEpisode) {
+            list.add(MenuItemData(
+                id = ID_FIX_MATCH,
+                title = if (item.isResolved) "Fix match" else "Resolve",
+                type = TYPE_ACTION,
+                isAction = true,
+                iconResId = R.drawable.ic_search
+            ))
+        }
 
         list.add(MenuItemData(
             id = ID_CLEAR_ITEM,

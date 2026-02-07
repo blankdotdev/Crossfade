@@ -82,10 +82,9 @@ class ResolveSearchBottomSheet : BottomSheetDialogFragment() {
         }
 
         // Set initial state
-        if (type == "Album") {
-            binding.toggleGroup.check(R.id.btnTypeAlbum)
-        } else {
-            binding.toggleGroup.check(R.id.btnTypeSong)
+        when (type) {
+            "Album" -> binding.toggleGroup.check(R.id.btnTypeAlbum)
+            else -> binding.toggleGroup.check(R.id.btnTypeSong)
         }
         
         binding.searchEditText.setOnEditorActionListener { _, actionId, _ ->
@@ -136,7 +135,13 @@ class ResolveSearchBottomSheet : BottomSheetDialogFragment() {
         
         binding.progressBar.isVisible = true
         lifecycleScope.launch {
-            val resolveResult = CrossfadeApp.instance.linkResolver.resolveManual(currentItem, url)
+            val resolveResult = CrossfadeApp.instance.linkResolver.resolveManual(
+                currentItem,
+                url,
+                fallbackTitle = result.trackName ?: result.collectionName,
+                fallbackArtist = result.artistName ?: result.collectionName,
+                fallbackThumbnail = result.artworkUrl100 ?: result.artworkUrl160 ?: result.artworkUrl600 ?: result.artworkUrl60
+            )
             binding.progressBar.isVisible = false
             
             when (resolveResult) {
@@ -179,8 +184,10 @@ class ResolveSearchBottomSheet : BottomSheetDialogFragment() {
         inner class ViewHolder(private val binding: ItemResolveResultBinding) : RecyclerView.ViewHolder(binding.root) {
             fun bind(result: ITunesResult) {
                 binding.resultTitle.text = result.trackName ?: result.collectionName ?: "Unknown"
-                binding.resultArtist.text = result.artistName ?: "Unknown Artist"
-                binding.resultImage.load(result.artworkUrl100) {
+                binding.resultArtist.text = result.artistName ?: result.collectionName ?: "Unknown Artist"
+                
+                val artworkUrl = result.artworkUrl100 ?: result.artworkUrl160 ?: result.artworkUrl600 ?: result.artworkUrl60
+                binding.resultImage.load(artworkUrl) {
                     placeholder(com.blankdev.crossfade.R.drawable.ic_placeholder_service)
                     error(com.blankdev.crossfade.R.drawable.ic_placeholder_service)
                 }

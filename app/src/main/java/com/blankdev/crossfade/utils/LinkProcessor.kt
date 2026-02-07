@@ -31,10 +31,18 @@ object LinkProcessor {
         val resolver = app.linkResolver
 
         val isPodcast = PlatformRegistry.isPodcastUrl(url)
+        val isOdesliLanding = url.contains("odesli.co") || url.contains("song.link")
         val sourcePlatform = if (isPodcast) PlatformRegistry.getPodcastPlatformFromUrl(url) else PlatformRegistry.getPlatformFromUrl(url)
         val targetApp = if (isPodcast) SettingsManager.TARGET_PODCAST_WEB else settings.targetApp
 
         val shouldNavigate = if (forceNavigate) true else (sourcePlatform != targetApp)
+
+        if (isOdesliLanding && !url.contains("?q=")) {
+             // It's a landing page URL, just open it
+             openUrl(context, url)
+             onComplete(true)
+             return
+        }
 
         scope.launch {
             if (historyItem != null && (historyItem.isResolved == false || historyItem.linksJson.isNullOrBlank() || historyItem.linksJson == "{}")) {

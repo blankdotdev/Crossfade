@@ -139,7 +139,7 @@ class MainActivity : AppCompatActivity() {
             }
             R.id.action_clear_all -> {
                 com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                    .setTitle("Clear All History?")
+                    .setTitle("Clear all history?")
                     .setMessage("Are you sure you want to clear all items from your history? This action cannot be undone.")
                     .setNegativeButton("Cancel", null)
                     .setPositiveButton("Clear") { _, _ ->

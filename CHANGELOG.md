@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.3] - 2026-02-07
+- Preparing for F-Droid submission.
+- Metadata and structure improvements.
+
 ## [1.1.2] - 2026-02-02
 - Added monochrome app icon support for Android 13+ theming.
 

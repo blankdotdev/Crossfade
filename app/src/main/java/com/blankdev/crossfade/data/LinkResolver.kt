@@ -114,6 +114,9 @@ class LinkResolver(private val historyDao: HistoryDao) {
                             val existingForUrl = historyDao.getHistoryItemByUrl(url)
                             val newId = existingForUrl?.id ?: 0
                             
+                            val isPodcast = entity?.type == "podcast" || entity?.type == "podcastShow"
+                            val isPodcastEpisode = entity?.type == "podcastEpisode"
+                            
                             val historyItem = HistoryItem(
                                 id = newId,
                                 originalUrl = url,
@@ -123,7 +126,9 @@ class LinkResolver(private val historyDao: HistoryDao) {
                                 originalImageUrl = thumbnail,
                                 pageUrl = body.pageUrl,
                                 linksJson = linksJson,
-                                isResolved = true
+                                isResolved = true,
+                                isPodcast = isPodcast,
+                                isPodcastEpisode = isPodcastEpisode
                             )
                             val savedId = historyDao.insert(historyItem)
                             val historyItemWithId = historyItem.copy(id = savedId)
@@ -145,7 +150,8 @@ class LinkResolver(private val historyDao: HistoryDao) {
                 val entity = when (type.lowercase()) {
                     "song" -> "song"
                     "album" -> "album"
-                    "podcast" -> "podcast,podcastEpisode"
+                    "pod" -> "podcast"
+                    "episode" -> "podcastEpisode"
                     else -> "song"
                 }
                 val response = itunesApi.search(query, entity)
@@ -160,7 +166,13 @@ class LinkResolver(private val historyDao: HistoryDao) {
         }
     }
 
-    suspend fun resolveManual(originalItem: HistoryItem, selectedUrl: String): ResolveResult {
+    suspend fun resolveManual(
+        originalItem: HistoryItem,
+        selectedUrl: String,
+        fallbackTitle: String? = null,
+        fallbackArtist: String? = null,
+        fallbackThumbnail: String? = null
+    ): ResolveResult {
         return withContext(Dispatchers.IO) {
             val itemToUpdate = if (originalItem.id == 0L) {
                 historyDao.getHistoryItemByUrl(originalItem.originalUrl) ?: originalItem
@@ -182,6 +194,8 @@ class LinkResolver(private val historyDao: HistoryDao) {
                         val artist = entity?.artistName
                         val thumbnail = entity?.thumbnailUrl
                         val isAlbum = entity?.type == "album"
+                        val isPodcast = entity?.type == "podcast" || entity?.type == "podcastShow"
+                        val isPodcastEpisode = entity?.type == "podcastEpisode"
                         
                         val linksJson = Gson().toJson(body.linksByPlatform)
                         
@@ -193,11 +207,51 @@ class LinkResolver(private val historyDao: HistoryDao) {
                             originalImageUrl = thumbnail,
                             pageUrl = body.pageUrl,
                             linksJson = linksJson,
-                            isResolved = true
+                            isResolved = true,
+                            isPodcast = isPodcast,
+                            isPodcastEpisode = isPodcastEpisode
                         )
                         historyDao.update(historyItem)
 
                         return@withContext ResolveResult.Success(body, historyItem)
+                    } else if (response.code() == 405 || response.code() == 400) {
+                        // Handle Unsupported URL or other client errors by falling back if metadata is provided
+                        if (fallbackTitle != null) {
+                            val isPodcast = originalItem.originalUrl.contains("podcasts.apple.com") || com.blankdev.crossfade.utils.PlatformRegistry.isPodcastUrl(originalItem.originalUrl)
+                            val isPodcastEpisode = isPodcast && originalItem.originalUrl.contains("?i=")
+                            
+                            val linksMap = mutableMapOf<String, com.blankdev.crossfade.api.PlatformLink>()
+                            val platformId = com.blankdev.crossfade.utils.PlatformRegistry.getPodcastPlatformFromUrl(selectedUrl)
+                                ?: com.blankdev.crossfade.utils.PlatformRegistry.getPlatformFromUrl(selectedUrl)
+                            
+                            val odesliKey = com.blankdev.crossfade.utils.PlatformRegistry.getPlatformByInternalId(platformId ?: "")?.odesliKey
+                            if (odesliKey != null) {
+                                linksMap[odesliKey] = com.blankdev.crossfade.api.PlatformLink(entityUniqueId = null, url = selectedUrl, nativeAppUriMobile = null, nativeAppUriDesktop = null)
+                            }
+
+                            val historyItem = itemToUpdate.copy(
+                                songTitle = fallbackTitle,
+                                artistName = fallbackArtist,
+                                thumbnailUrl = fallbackThumbnail,
+                                originalImageUrl = fallbackThumbnail,
+                                pageUrl = selectedUrl,
+                                linksJson = Gson().toJson(linksMap),
+                                isResolved = true,
+                                isPodcast = isPodcast,
+                                isPodcastEpisode = isPodcastEpisode
+                            )
+                            historyDao.update(historyItem)
+                            
+                            val dummyResponse = OdesliResponse(
+                                entityUniqueId = null,
+                                userCountry = null,
+                                pageUrl = selectedUrl,
+                                entitiesByUniqueId = null,
+                                linksByPlatform = emptyMap()
+                            )
+                            return@withContext ResolveResult.Success(dummyResponse, historyItem)
+                        }
+                        lastError = "Odesli error: ${response.code()} ${response.message()}"
                     } else {
                         lastError = "Odesli error: ${response.code()} ${response.message()}"
                     }

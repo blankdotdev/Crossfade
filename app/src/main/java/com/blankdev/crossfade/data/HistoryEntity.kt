@@ -20,6 +20,8 @@ data class HistoryItem(
     val pageUrl: String? = null,
     val timestamp: Long = System.currentTimeMillis(),
     val linksJson: String?, // Store all platform links as JSON for the Share sheet
-    val isResolved: Boolean = true
+    val isResolved: Boolean = true,
+    val isPodcast: Boolean = false,
+    val isPodcastEpisode: Boolean = false
 )
 

@@ -210,17 +210,25 @@ class OnboardingActivity : AppCompatActivity() {
 
     private fun openSystemSettings() {
         try {
-            val intent = Intent(android.provider.Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                val intent = Intent(android.provider.Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS)
+                intent.data = android.net.Uri.parse("package:$packageName")
+                startActivity(intent)
+            } else {
+                openApplicationDetailsSub()
+            }
+        } catch (e: Exception) {
+            openApplicationDetailsSub()
+        }
+    }
+
+    private fun openApplicationDetailsSub() {
+        try {
+            val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
             intent.data = android.net.Uri.parse("package:$packageName")
             startActivity(intent)
         } catch (e: Exception) {
-            try {
-                val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                intent.data = android.net.Uri.parse("package:$packageName")
-                startActivity(intent)
-            } catch (e: Exception) {
-                // Fallback
-            }
+            // Fallback
         }
     }
     

@@ -37,33 +37,8 @@ object LinkProcessor {
         val shouldNavigate = if (forceNavigate) true else (sourcePlatform != targetApp)
 
         scope.launch {
-            val hasNoLinks = historyItem?.isResolved == true && (historyItem.linksJson == null || historyItem.linksJson == "{}")
-            val isUnresolved = historyItem?.isResolved == false
-
-            if (historyItem != null && (isUnresolved || hasNoLinks)) {
-                withContext(Dispatchers.Main) {
-                    if (shouldNavigate) {
-                        if (context is androidx.fragment.app.FragmentActivity) {
-                            com.blankdev.crossfade.ui.ShareBottomSheet.showResolveFlow(
-                                context.supportFragmentManager,
-                                historyItem
-                            ) { updatedItem ->
-                                handleResolutionSuccess(context, updatedItem)
-                            }
-                        } else {
-                            val searchQuery = if (!historyItem.songTitle.isNullOrBlank()) {
-                                if (!historyItem.artistName.isNullOrBlank()) "${historyItem.songTitle} ${historyItem.artistName}" else historyItem.songTitle
-                            } else {
-                                url
-                            }
-                            Toast.makeText(context, "Search instead...", Toast.LENGTH_SHORT).show()
-                            performSearch(context, searchQuery, targetApp)
-                        }
-                        onComplete(true)
-                    } else {
-                        onComplete(false)
-                    }
-                }
+            if (historyItem != null && (historyItem.isResolved == false || historyItem.linksJson.isNullOrBlank() || historyItem.linksJson == "{}")) {
+                handleAlreadyResolved(context, historyItem, shouldNavigate, url, targetApp, onComplete)
                 return@launch
             }
 
@@ -71,113 +46,153 @@ object LinkProcessor {
             val isActuallyResolved = cachedItem != null && cachedItem.isResolved && !cachedItem.linksJson.isNullOrBlank() && cachedItem.linksJson != "{}"
             
             if (!isActuallyResolved) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Crossfading...", Toast.LENGTH_SHORT).show()
-                }
+                withContext(Dispatchers.Main) { Toast.makeText(context, "Crossfading...", Toast.LENGTH_SHORT).show() }
             }
 
             val result = resolver.resolveLink(url)
             
             withContext(Dispatchers.Main) {
                 when (result) {
-                    is ResolveResult.Success -> {
-                        if (targetApp == SettingsManager.TARGET_UNIVERSAL) {
-                             showMenu(context, result.historyItem)
-                             onComplete(true)
-                             return@withContext
-                        }
-
-                        if (shouldNavigate) {
-                            val hasConflict = DefaultHandlerChecker.hasConflict(context, targetApp)
-                            
-                            if (hasConflict) {
-                                Toast.makeText(context, "Conflict detected, opening Odesli instead", Toast.LENGTH_LONG).show()
-                                openUrl(context, result.data.pageUrl ?: "https://odesli.co/")
-                                onComplete(true)
-                                return@withContext
-                            }
-                            
-                            val targetUrl = if (isPodcast) {
-                                resolver.getPodcastTargetUrl(result.data, targetApp)
-                            } else {
-                                resolver.getTargetUrl(result.data, targetApp)
-                            }
-
-                            if (targetUrl != null) {
-                                openUrl(context, targetUrl)
-                                onComplete(true)
-                            } else {
-                                Toast.makeText(context, "Link not found for target, opening web...", Toast.LENGTH_SHORT).show()
-                                openUrl(context, result.data.pageUrl ?: url)
-                                onComplete(true)
-                            }
-                        } else {
-                            Toast.makeText(context, "Link saved! (Source matches Target)", Toast.LENGTH_SHORT).show()
-                            onComplete(false)
-                        }
-                    }
-                    is ResolveResult.Fallback -> {
-                        if (targetApp == SettingsManager.TARGET_UNIVERSAL) {
-                             showMenu(context, result.historyItem)
-                             onComplete(true)
-                             return@withContext
-                        }
-
-                        if (shouldNavigate) {
-                            if (context is androidx.fragment.app.FragmentActivity) {
-                                if (context is RedirectActivity) {
-                                    redirectToFixMatch(context, url, result.historyItem)
-                                    onComplete(false)
-                                } else {
-                                    ShareBottomSheet.showResolveFlow(
-                                        context.supportFragmentManager,
-                                        result.historyItem
-                                    ) { updatedItem ->
-                                        handleResolutionSuccess(context, updatedItem)
-                                    }
-                                    onComplete(true)
-                                }
-                            } else {
-                                Toast.makeText(context, "Exact match failed. Searching...", Toast.LENGTH_SHORT).show()
-                                performSearch(context, result.searchQuery, targetApp)
-                                onComplete(true)
-                            }
-                        } else {
-                            onComplete(false)
-                        }
-                    }
-                    is ResolveResult.Error -> {
-                        resolver.saveUnresolvedLink(url)
-                        
-                        if (context is androidx.fragment.app.FragmentActivity) {
-                            if (context is RedirectActivity) {
-                                val item = app.database.historyDao().getHistoryItemByUrl(url)
-                                redirectToFixMatch(context, url, item)
-                                onComplete(false)
-                            } else {
-                                scope.launch {
-                                    val item = app.database.historyDao().getHistoryItemByUrl(url)
-                                    withContext(Dispatchers.Main) {
-                                        if (item != null) {
-                                            ShareBottomSheet.showResolveFlow(
-                                                context.supportFragmentManager,
-                                                item
-                                            ) { updatedItem ->
-                                                handleResolutionSuccess(context, updatedItem)
-                                            }
-                                        } else {
-                                            Toast.makeText(context, "Link unresolved, saved to list", Toast.LENGTH_SHORT).show()
-                                        }
-                                        onComplete(false)
-                                    }
-                                }
-                            }
-                        } else {
-                            Toast.makeText(context, "Link unresolved, saved to list", Toast.LENGTH_SHORT).show()
-                            onComplete(false)
-                        }
-                    }
+                    is ResolveResult.Success -> handleSuccess(context, result, targetApp, isPodcast, shouldNavigate, onComplete)
+                    is ResolveResult.Fallback -> handleFallback(context, result, url, targetApp, shouldNavigate, onComplete)
+                    is ResolveResult.Error -> handleError(context, url, scope, onComplete)
                 }
+            }
+        }
+    }
+
+    private fun handleAlreadyResolved(
+        context: Context,
+        historyItem: com.blankdev.crossfade.data.HistoryItem,
+        shouldNavigate: Boolean,
+        url: String,
+        targetApp: String,
+        onComplete: (Boolean) -> Unit
+    ) {
+        if (!shouldNavigate) {
+            onComplete(false)
+            return
+        }
+
+        if (context is androidx.fragment.app.FragmentActivity) {
+            ShareBottomSheet.showResolveFlow(context.supportFragmentManager, historyItem) { updatedItem ->
+                handleResolutionSuccess(context, updatedItem)
+            }
+        } else {
+            val searchQuery = historyItem.songTitle?.let { title ->
+                historyItem.artistName?.let { artist -> "$title $artist" } ?: title
+            } ?: url
+            Toast.makeText(context, "Search instead...", Toast.LENGTH_SHORT).show()
+            performSearch(context, searchQuery, targetApp)
+        }
+        onComplete(true)
+    }
+
+    private fun handleSuccess(
+        context: Context,
+        result: ResolveResult.Success,
+        targetApp: String,
+        isPodcast: Boolean,
+        shouldNavigate: Boolean,
+        onComplete: (Boolean) -> Unit
+    ) {
+        if (targetApp == SettingsManager.TARGET_UNIVERSAL) {
+            showMenu(context, result.historyItem)
+            onComplete(true)
+            return
+        }
+
+        if (!shouldNavigate) {
+            Toast.makeText(context, "Link saved! (Source matches Target)", Toast.LENGTH_SHORT).show()
+            onComplete(false)
+            return
+        }
+
+        if (DefaultHandlerChecker.hasConflict(context, targetApp)) {
+            Toast.makeText(context, "Conflict detected, opening Odesli instead", Toast.LENGTH_LONG).show()
+            openUrl(context, result.data.pageUrl ?: "https://odesli.co/")
+            onComplete(true)
+            return
+        }
+
+        val resolver = CrossfadeApp.instance.linkResolver
+        val targetUrl = if (isPodcast) {
+            resolver.getPodcastTargetUrl(result.data, targetApp)
+        } else {
+            resolver.getTargetUrl(result.data, targetApp)
+        }
+
+        if (targetUrl != null) {
+            openUrl(context, targetUrl)
+        } else {
+            Toast.makeText(context, "Link not found for target, opening web...", Toast.LENGTH_SHORT).show()
+            openUrl(context, result.data.pageUrl ?: result.historyItem.originalUrl)
+        }
+        onComplete(true)
+    }
+
+    private fun handleFallback(
+        context: Context,
+        result: ResolveResult.Fallback,
+        url: String,
+        targetApp: String,
+        shouldNavigate: Boolean,
+        onComplete: (Boolean) -> Unit
+    ) {
+        if (targetApp == SettingsManager.TARGET_UNIVERSAL) {
+            showMenu(context, result.historyItem)
+            onComplete(true)
+            return
+        }
+
+        if (!shouldNavigate) {
+            onComplete(false)
+            return
+        }
+
+        if (context is androidx.fragment.app.FragmentActivity) {
+            if (context is RedirectActivity) {
+                redirectToFixMatch(context, url, result.historyItem)
+                onComplete(false)
+            } else {
+                ShareBottomSheet.showResolveFlow(context.supportFragmentManager, result.historyItem) { updatedItem ->
+                    handleResolutionSuccess(context, updatedItem)
+                }
+                onComplete(true)
+            }
+        } else {
+            Toast.makeText(context, "Exact match failed. Searching...", Toast.LENGTH_SHORT).show()
+            performSearch(context, result.searchQuery, targetApp)
+            onComplete(true)
+        }
+    }
+
+    private fun handleError(
+        context: Context,
+        url: String,
+        scope: CoroutineScope,
+        onComplete: (Boolean) -> Unit
+    ) {
+        val app = CrossfadeApp.instance
+        scope.launch {
+            app.linkResolver.saveUnresolvedLink(url)
+            val item = app.database.historyDao().getHistoryItemByUrl(url)
+            
+            withContext(Dispatchers.Main) {
+                if (context is androidx.fragment.app.FragmentActivity) {
+                    if (context is RedirectActivity) {
+                        redirectToFixMatch(context, url, item)
+                    } else if (item != null) {
+                        ShareBottomSheet.showResolveFlow(context.supportFragmentManager, item) { updatedItem ->
+                            handleResolutionSuccess(context, updatedItem)
+                        }
+                    } else {
+                        Toast.makeText(context, "Link unresolved, saved to list", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    Toast.makeText(context, "Link unresolved, saved to list", Toast.LENGTH_SHORT).show()
+                }
+                onComplete(false)
             }
         }
     }

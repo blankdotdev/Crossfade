@@ -148,7 +148,7 @@ object BackupManager {
                                 if (item != null) {
                                     historyItems.add(item)
                                 } else {
-                                    // Invalid row
+                                    android.util.Log.w("BackupManager", "Skipping invalid HISTORY row: $line")
                                 }
                             }
                         }

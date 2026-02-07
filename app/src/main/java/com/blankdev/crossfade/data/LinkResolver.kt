@@ -72,7 +72,7 @@ class LinkResolver(private val historyDao: HistoryDao) {
                         )
                         return@withContext ResolveResult.Success(response, existingItem)
                     } catch (e: Exception) {
-                        // Fallback to network
+                        android.util.Log.w("LinkResolver", "Failed to parse cached links: ${e.message}")
                     }
                 }
             }
@@ -91,7 +91,9 @@ class LinkResolver(private val historyDao: HistoryDao) {
                      if (resolvedExisting != null && resolvedExisting.isResolved) {
                          return@withContext resolveLink(effectiveUrl) 
                      }
-                 } catch (e: Exception) {}
+                 } catch (e: Exception) {
+                     android.util.Log.e("LinkResolver", "SoundCloud redirect failed: ${e.message}")
+                 }
             }
 
             // 2. Try Odesli

@@ -14,7 +14,7 @@ activityKtx = "1.8.2"
 lifecycle = "2.7.0"
 coroutines = "1.7.3"
 ksp = "1.9.20-1.0.14"
-jsoup = "1.17.2"
+jsoup = "1.22.1"
 work = "2.11.1"
 detekt = "1.23.5"
 

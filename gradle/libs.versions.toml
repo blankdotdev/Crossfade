@@ -16,7 +16,7 @@ coroutines = "1.7.3"
 ksp = "1.9.20-1.0.14"
 jsoup = "1.22.1"
 work = "2.9.0"
-detekt = "1.23.5"
+detekt = "1.23.8"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

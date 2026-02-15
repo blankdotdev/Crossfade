@@ -20,6 +20,7 @@ Builds:
     subdir: app
     gradle:
       - yes
+    prebuild: sed -i -e '/create("release") {/,/^        }/d' build.gradle.kts
 
 AutoUpdateMode: Version v%v
 UpdateCheckMode: Tags

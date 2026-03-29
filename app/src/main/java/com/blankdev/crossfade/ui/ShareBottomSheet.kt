@@ -107,7 +107,8 @@ class ShareBottomSheet : BottomSheetDialogFragment() {
                     handleAction(menuItem)
                 } else if (menuItem.url != null) {
                     context?.let { ctx ->
-                        com.blankdev.crossfade.utils.LinkProcessor.openUrl(ctx, menuItem.url)
+                        // Use processMoreLink to open in Custom Tabs without affecting history
+                        com.blankdev.crossfade.utils.LinkProcessor.processMoreLink(ctx, menuItem.url)
                         dismiss()
                     }
                 }

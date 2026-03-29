@@ -301,4 +301,26 @@ object LinkProcessor {
             }
         }
     }
+
+    fun processMoreLink(
+        context: Context, 
+        url: String
+    ) {
+        try {
+            val builder = androidx.browser.customtabs.CustomTabsIntent.Builder()
+            
+            // Set toolbar color to match app theme if possible, or default to standard color
+            val surfaceColor = com.google.android.material.color.MaterialColors.getColor(context, com.google.android.material.R.attr.colorSurface, android.graphics.Color.WHITE)
+            val params = androidx.browser.customtabs.CustomTabColorSchemeParams.Builder()
+                .setToolbarColor(surfaceColor)
+                .build()
+            builder.setDefaultColorSchemeParams(params)
+            
+            val customTabsIntent = builder.build()
+            customTabsIntent.launchUrl(context, Uri.parse(url))
+        } catch (e: Exception) {
+            // Fallback to standard browser if Custom Tabs fails
+            openUrl(context, url)
+        }
+    }
 }

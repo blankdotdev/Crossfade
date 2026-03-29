@@ -17,9 +17,11 @@ ksp = "1.9.20-1.0.14"
 jsoup = "1.22.1"
 work = "2.9.0"
 detekt = "1.23.5"
+browser = "1.8.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }

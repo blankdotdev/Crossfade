@@ -13,13 +13,13 @@ Repo: https://github.com/blankdotdev/Crossfade.git
 Builds:
   - versionName: 1.1.3
     versionCode: 9
-    commit: v1.1.3
+    commit: c538e13f0b77c136cea15a736c88749b98b19aa3
     subdir: app
     gradle:
       - yes
-    prebuild: sed -i -e '/create("release") {/,/^        }/d' build.gradle.kts
+    prebuild: sed -i -e '/create("release") {/,/        }/d' app/build.gradle.kts
 
-AutoUpdateMode: Version v%v
+AutoUpdateMode: Version
 UpdateCheckMode: Tags
 CurrentVersion: 1.1.3
 CurrentVersionCode: 9

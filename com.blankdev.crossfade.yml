@@ -14,12 +14,11 @@ Repo: https://github.com/blankdotdev/Crossfade.git
 Builds:
   - versionName: 1.1.3
     versionCode: 9
-    commit: c538e13f0b77c136cea15a736c88749b98b19aa3
+    commit: 49599da7ce8f871a8a955caeb7680176ddb1c9e5
     subdir: app
     gradle:
       - yes
-    prebuild: sed -i -e '/signingConfigs {/,/    }/d' -e '/val releaseSigning = signingConfigs/,/            }/d'
-      app/build.gradle.kts
+    prebuild: bash fix_gradle.sh
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags

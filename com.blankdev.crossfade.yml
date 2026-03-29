@@ -18,7 +18,8 @@ Builds:
     subdir: app
     gradle:
       - yes
-    prebuild: sed -i -e '/signingConfigs {/,/    }/d' -e '/val releaseSigning = signingConfigs/,/            }/d' app/build.gradle.kts
+    prebuild: sed -i -e '/signingConfigs {/,/    }/d' -e '/val releaseSigning = signingConfigs/,/            }/d'
+      app/build.gradle.kts
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
